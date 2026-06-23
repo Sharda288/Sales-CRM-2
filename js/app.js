@@ -7,7 +7,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const navItems = document.querySelectorAll('.nav-item');
   const tabPanes = document.querySelectorAll('.tab-pane');
   const pageTitle = document.getElementById('page-title');
-  const dashboardRecords = document.getElementById('dashboard-records');
   const addRecordBtn = document.getElementById('add-record-btn');
   const auditLogsSection = document.getElementById('audit-logs-section');
   const auditLogsContainer = document.getElementById('audit-logs-container');
@@ -95,6 +94,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
       pageTitle.textContent = item.textContent;
 
+      if (tabName === 'dashboard' && window.dashboardManager) {
+        window.dashboardManager.render();
+      }
       if (tabName === 'leads' && window.leadsManager) {
         window.leadsManager.render();
       }
@@ -120,16 +122,8 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   addRecordBtn.addEventListener('click', () => {
-    const user = auth.getCurrentUser();
-    if (user) {
-      db.createRecord('leads', {
-        first_name: 'New',
-        last_name: 'Lead',
-        email: `new${Date.now()}@test.com`,
-        phone: '1112223333'
-      }, user);
-      renderDashboard();
-      renderAudits();
+    if (window.leadsManager) {
+      window.leadsManager.openLeadModal();
     }
   });
 
@@ -159,7 +153,9 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function renderDashboard() {
-    renderTable(dashboardRecords, 'leads', ['first_name', 'last_name', 'email', 'company_name']);
+    if (window.dashboardManager) {
+      window.dashboardManager.render();
+    }
   }
 
 

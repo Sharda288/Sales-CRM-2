@@ -54,19 +54,13 @@
       <div class="top-bar">
         <h2 id="page-title">Dashboard</h2>
         <div>
-          <button class="btn btn-primary" id="add-record-btn">+ New Record</button>
+          <button class="btn btn-primary hidden" id="add-record-btn">+ New Record</button>
         </div>
       </div>
 
       <!-- Tab Contents -->
       <div id="tab-dashboard" class="tab-pane active">
-        <div class="card">
-          <h3>Welcome to the Dashboard</h3>
-          <p>Your current active workspace overview will appear here.</p>
-        </div>
-        <div id="dashboard-records" class="card">
-          <!-- Rendered by JS -->
-        </div>
+        <div id="dashboard-container"></div>
       </div>
 
       <div id="tab-leads" class="tab-pane">
@@ -880,6 +874,7 @@
   <script src="js/leads.js"></script>
   <script src="js/reports.js"></script>
   <script src="js/settings.js"></script>
+  <script src="js/dashboard.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>

@@ -1,4 +1,4 @@
-﻿:root {
+:root {
   --primary: #cc785c;
   --primary-active: #a9583e;
   --primary-disabled: #e6dfd8;
@@ -460,4 +460,9 @@ a:hover {
   margin-top: 4px;
   border-top: 1px solid var(--hairline);
   padding-top: 8px;
+}
+
+@keyframes dashFadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
 }
