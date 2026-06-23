@@ -120,15 +120,15 @@ class SettingsManager {
         <div class="card" style="border-left: 4px solid var(--primary);">
           <h3>Data Tools & Backup</h3>
           <p>Export the full CRM state, restore from a backup, or factory reset the database.</p>
-          
+
           <div style="margin-top: 15px; display: flex; gap: 15px; align-items: center; flex-wrap: wrap;">
             <button class="btn btn-primary" onclick="window.settingsManager.exportBackup()">Export Backup (JSON)</button>
-            
+
             <div style="display: flex; align-items: center; gap: 10px;">
               <input type="file" id="import-backup-file" class="form-control" accept=".json" style="width: auto;">
               <button class="btn btn-secondary" onclick="window.settingsManager.importBackup()">Import Backup</button>
             </div>
-            
+
             <button class="btn btn-danger" style="margin-left: auto; background-color: var(--error); color: white;" onclick="window.settingsManager.factoryReset()">Factory Reset CRM</button>
           </div>
         </div>
@@ -141,7 +141,7 @@ class SettingsManager {
   downloadTemplate(collection) {
     const schema = window.crmSchema[collection];
     if (!schema) return;
-    
+
     // Header-only CSV
     const headers = schema.fields.map(f => `"${f.replace(/"/g, '""')}"`).join(',');
     const csvContent = headers + '\\n';
@@ -217,12 +217,12 @@ class SettingsManager {
     reader.onload = (e) => {
       try {
         const json = JSON.parse(e.target.result);
-        
+
         // Validate shape
         if (typeof json !== 'object' || Array.isArray(json)) throw new Error('Root must be an object.');
         if (!json.crm_backup_version && !json.exported_at) throw new Error('Missing crm_backup_version or exported_at.');
         if (!json.collections || typeof json.collections !== 'object') throw new Error('Missing collections object.');
-        
+
         const expectedCollections = Object.keys(window.crmSchema || {});
 
         // Check for unknown collections
@@ -283,10 +283,10 @@ class SettingsManager {
         keysToRemove.push(key);
       }
     }
-    
+
     keysToRemove.forEach(k => localStorage.removeItem(k));
     localStorage.removeItem('crm_seeded_v3');
-    
+
     alert('CRM has been reset to factory defaults. Reloading...');
     window.location.reload();
   }
