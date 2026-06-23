@@ -8,7 +8,12 @@
     duplicateKeys: ['name']
   },
   leads: {
-    fields: ['first_name', 'last_name', 'email', 'phone', 'company_name', 'job_title', 'source', 'score', 'industry', 'linkedin', 'address'],
+    fields: [
+      'company_name', 'contact_person', 'designation', 'email', 'phone',
+      'linkedin', 'website', 'industry', 'company_size', 'city', 'country',
+      'service_interest', 'source', 'last_contact_date', 'next_follow_up_date',
+      'follow_up_type', 'last_discussion', 'remarks', 'priority'
+    ],
     duplicateKeys: ['email', 'phone', 'company_name', 'linkedin']
   },
   contacts: {

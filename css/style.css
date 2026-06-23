@@ -307,3 +307,80 @@ a:hover {
 .hidden {
   display: none !important;
 }
+/* Sheet Style Table */
+.sheet-container {
+  overflow-x: auto;
+  background-color: var(--surface-card);
+  border-radius: var(--rounded-lg);
+  margin-bottom: var(--spacing-lg);
+}
+.sheet-table {
+  width: max-content;
+  min-width: 100%;
+  border-collapse: collapse;
+}
+.sheet-table th, .sheet-table td {
+  padding: 8px 12px;
+  text-align: left;
+  border: 1px solid var(--hairline);
+  white-space: nowrap;
+  font-size: 13px;
+}
+.sheet-table th {
+  background-color: var(--surface-dark-elevated);
+  color: var(--on-dark);
+  font-weight: 500;
+  position: sticky;
+  top: 0;
+}
+.sheet-table tbody tr:hover {
+  background-color: var(--canvas);
+}
+
+/* Modal */
+.modal-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-color: rgba(20, 20, 19, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+.modal {
+  background-color: var(--canvas);
+  border-radius: var(--rounded-lg);
+  padding: var(--spacing-xl);
+  width: 90%;
+  max-width: 600px;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-lg);
+}
+
+/* Utility Badges */
+.badge-overdue { background-color: var(--error); color: white; }
+.badge-priority-high { background-color: var(--primary-active); color: white; }
+.badge-priority-medium { background-color: var(--warning); color: white; }
+.badge-priority-low { background-color: var(--success); color: white; }
+
+/* Filter Bar */
+.filter-bar {
+  display: flex;
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-lg);
+  flex-wrap: wrap;
+  align-items: center;
+}
+.filter-bar input, .filter-bar select {
+  height: 36px;
+  padding: 0 10px;
+  font-size: 13px;
+  border-radius: var(--rounded-sm);
+  border: 1px solid var(--hairline);
+}

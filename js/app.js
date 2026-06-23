@@ -39,6 +39,7 @@
       renderDashboard();
       renderDatabaseTab();
       renderAudits();
+      if (window.leadsManager) window.leadsManager.render();
     } else {
       loginView.classList.remove('hidden');
       appView.classList.add('hidden');
@@ -90,6 +91,10 @@
       document.getElementById(`tab-${tabName}`).classList.add('active');
 
       pageTitle.textContent = item.textContent;
+
+      if (tabName === 'leads' && window.leadsManager) {
+        window.leadsManager.render();
+      }
     });
   });
 
