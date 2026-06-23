@@ -1,4 +1,4 @@
-const USERS = {
+﻿const USERS = {
   manager: { id: 'mgr1', name: 'Alice (Manager)', role: 'manager', team_id: 'all' },
   team_lead: { id: 'tl1', name: 'Bob (Team Lead - Alpha)', role: 'team_lead', team_id: 'team_alpha' },
   employee: { id: 'emp1', name: 'Charlie (Employee - Alpha)', role: 'employee', team_id: 'team_alpha' }

@@ -1,115 +1,210 @@
-class Database {
+﻿class Database {
   constructor() {
     this.seedData();
   }
 
   seedData() {
-    if (!localStorage.getItem('crm_records')) {
-      const initialRecords = [
-        {
-          id: 'rec_1',
-          title: 'Acme Corp Deal',
-          owner_id: 'mgr1',
-          assigned_to: 'mgr1',
-          team_id: 'management',
-          created_by: 'mgr1',
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        },
-        {
-          id: 'rec_2',
-          title: 'Alpha Team Lead Project',
-          owner_id: 'tl1',
-          assigned_to: 'tl1',
-          team_id: 'team_alpha',
-          created_by: 'mgr1',
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        },
-        {
-          id: 'rec_3',
-          title: 'Employee 1 Task',
-          owner_id: 'emp1',
-          assigned_to: 'emp1',
-          team_id: 'team_alpha',
-          created_by: 'tl1',
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        },
-        {
-          id: 'rec_4',
-          title: 'Employee 2 Task',
-          owner_id: 'emp2',
-          assigned_to: 'emp2',
-          team_id: 'team_beta',
-          created_by: 'mgr1',
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
+    const isSeeded = localStorage.getItem('crm_seeded_v3');
+    if (!isSeeded) {
+      // Initialize all collections
+      const collections = Object.keys(window.crmSchema || {});
+      collections.forEach(col => {
+        if (!localStorage.getItem(`crm_${col}`)) {
+          localStorage.setItem(`crm_${col}`, JSON.stringify([]));
         }
-      ];
-      localStorage.setItem('crm_records', JSON.stringify(initialRecords));
-    }
+      });
 
-    if (!localStorage.getItem('crm_audits')) {
-      localStorage.setItem('crm_audits', JSON.stringify([]));
+      const mgr = { id: 'mgr1', team_id: 'management', role: 'manager' };
+      const tl = { id: 'tl1', team_id: 'team_alpha', role: 'team_lead' };
+      const emp = { id: 'emp1', team_id: 'team_alpha', role: 'employee' };
+
+      // Meaningful seed records for all entities
+      this.createRecord('users', { first_name: 'Alice', last_name: 'Manager', email: 'alice@crm.com', role: 'manager', team_id: 'all' }, mgr, true);
+      this.createRecord('teams', { name: 'Alpha Team', description: 'Primary sales', manager_id: 'tl1' }, mgr, true);
+      this.createRecord('clients', { company_name: 'Acme Corp', industry: 'Tech', gst: 'GST001' }, mgr, true);
+      this.createRecord('contacts', { first_name: 'Jane', last_name: 'Smith', email: 'jane@acme.com', client_id: 'clients_1' }, emp, true);
+      this.createRecord('leads', { first_name: 'John', last_name: 'Doe', email: 'john@example.com', company_name: 'Example LLC' }, tl, true);
+      this.createRecord('requirements', { title: 'Needs Software', budget: '10000', priority: 'High' }, emp, true);
+      this.createRecord('sourcingCandidates', { first_name: 'Tom', last_name: 'Hanks', email: 'tom@hanks.com', skills: 'Acting' }, tl, true);
+      this.createRecord('trainers', { first_name: 'Bob', last_name: 'Ross', expertise: 'Painting' }, mgr, true);
+      this.createRecord('vendors', { company_name: 'Cloud Services Inc', services_provided: 'Hosting', gst: 'GST999' }, mgr, true);
+      this.createRecord('deals', { title: 'Acme Q4 Deal', amount: '50000', stage: 'Negotiation' }, tl, true);
+      this.createRecord('tasks', { title: 'Call John Doe', priority: 'High', status: 'Pending' }, emp, true);
+      this.createRecord('activities', { type: 'Call', description: 'Initial pitch', duration: '30m' }, emp, true);
+      this.createRecord('proposals', { title: 'Acme Proposal v1', amount: '45000', status: 'Sent' }, tl, true);
+      this.createRecord('purchaseOrders', { po_number: 'PO-1001', amount: '5000', status: 'Approved' }, mgr, true);
+      this.createRecord('invoices', { invoice_number: 'INV-2001', amount: '45000', status: 'Unpaid' }, mgr, true);
+      this.createRecord('payments', { invoice_id: 'INV-2001', amount: '10000', method: 'Wire' }, mgr, true);
+      this.createRecord('feedback', { rating: '5', comments: 'Great service', submitted_by: 'Jane Smith' }, tl, true);
+      this.createRecord('documents', { title: 'NDA', file_type: 'PDF', version: '1.0' }, emp, true);
+
+      localStorage.setItem('crm_seeded_v3', 'true');
     }
   }
 
-  getRecords(user) {
-    const allRecords = JSON.parse(localStorage.getItem('crm_records') || '[]');
+  canAccessRecord(user, record) {
+    if (!user || !record) return false;
+    if (user.role === 'manager') return true;
+    if (user.role === 'team_lead') return record.team_id === user.team_id;
+    if (user.role === 'employee') {
+      return record.owner_id === user.id ||
+             record.assigned_to === user.id ||
+             record.created_by === user.id;
+    }
+    return false;
+  }
 
+  getRecords(collection, user) {
+    const allRecords = JSON.parse(localStorage.getItem(`crm_${collection}`) || '[]');
     if (!user) return [];
 
-    if (user.role === 'manager') {
-      return allRecords;
-    } else if (user.role === 'team_lead') {
-      return allRecords.filter(r => r.team_id === user.team_id);
-    } else if (user.role === 'employee') {
-      return allRecords.filter(r =>
-        r.owner_id === user.id ||
-        r.assigned_to === user.id ||
-        r.created_by === user.id
-      );
+    if (collection === 'auditLogs') {
+      if (user.role === 'manager') return allRecords;
+      if (user.role === 'team_lead') return allRecords.filter(r => r.team_id === user.team_id);
+      return [];
     }
-    return [];
+
+    return allRecords.filter(r => this.canAccessRecord(user, r));
   }
 
-  addRecord(title, user) {
-    const records = JSON.parse(localStorage.getItem('crm_records') || '[]');
+  createRecord(collection, data, user, skipAudit = false) {
+    if (!user) throw new Error("Unauthorized");
+
+    let finalTeamId = data.team_id || user.team_id || 'none';
+    let finalOwnerId = data.owner_id || user.id;
+    let finalAssignedTo = data.assigned_to || user.id;
+
+    // Sanitize metadata based on role
+    if (user.role === 'employee') {
+      finalTeamId = user.team_id;
+      finalOwnerId = user.id;
+      finalAssignedTo = user.id;
+    } else if (user.role === 'team_lead') {
+      finalTeamId = user.team_id; // Team Lead can only assign within their team
+    }
+
+    const records = JSON.parse(localStorage.getItem(`crm_${collection}`) || '[]');
     const newRecord = {
-      id: 'rec_' + Math.random().toString(36).substr(2, 9),
-      title: title,
-      owner_id: user.id,
-      assigned_to: user.id,
-      team_id: user.team_id,
+      ...data,
+      id: `${collection}_` + Math.random().toString(36).substr(2, 9),
       created_by: user.id,
+      owner_id: finalOwnerId,
+      assigned_to: finalAssignedTo,
+      team_id: finalTeamId,
+      department: data.department || 'general',
+      status: data.status || 'active',
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     };
-    records.push(newRecord);
-    localStorage.setItem('crm_records', JSON.stringify(records));
 
-    this.logAudit('create', `Created record ${newRecord.id}`, user);
+    records.push(newRecord);
+    localStorage.setItem(`crm_${collection}`, JSON.stringify(records));
+
+    if (!skipAudit) {
+      this.logAudit('create', `Created ${collection} record ${newRecord.id}`, user, finalTeamId);
+      this.logActivity('create', `Created new ${collection}`, collection, newRecord.id, user);
+    }
+
     return newRecord;
   }
 
-  logAudit(action, details, user) {
+  updateRecord(collection, id, updates, user) {
+    if (!user) throw new Error("Unauthorized");
+    const records = JSON.parse(localStorage.getItem(`crm_${collection}`) || '[]');
+    const index = records.findIndex(r => r.id === id);
+    if (index === -1) throw new Error("Record not found");
+
+    const record = records[index];
+    if (!this.canAccessRecord(user, record)) {
+      throw new Error("Unauthorized to update this record");
+    }
+
+    // Role sanitation on updates
+    let finalTeamId = updates.team_id !== undefined ? updates.team_id : record.team_id;
+    let finalOwnerId = updates.owner_id !== undefined ? updates.owner_id : record.owner_id;
+    let finalAssignedTo = updates.assigned_to !== undefined ? updates.assigned_to : record.assigned_to;
+
+    if (user.role === 'employee') {
+      finalTeamId = record.team_id;
+      finalOwnerId = record.owner_id;
+      finalAssignedTo = record.assigned_to; // Employees cannot reassign
+    } else if (user.role === 'team_lead') {
+      finalTeamId = user.team_id; // Cannot move to another team
+    }
+
+    const updatedRecord = {
+      ...record,
+      ...updates,
+      team_id: finalTeamId,
+      owner_id: finalOwnerId,
+      assigned_to: finalAssignedTo,
+      updated_at: new Date().toISOString()
+    };
+
+    records[index] = updatedRecord;
+    localStorage.setItem(`crm_${collection}`, JSON.stringify(records));
+
+    this.logAudit('update', `Updated ${collection} record ${id}`, user, updatedRecord.team_id);
+    this.logActivity('update', `Updated ${collection}`, collection, id, user);
+
+    return updatedRecord;
+  }
+
+  deleteRecord(collection, id, user) {
+    if (!user) throw new Error("Unauthorized");
+    let records = JSON.parse(localStorage.getItem(`crm_${collection}`) || '[]');
+    const record = records.find(r => r.id === id);
+    if (!record) return;
+
+    if (!this.canAccessRecord(user, record)) {
+      throw new Error("Unauthorized to delete this record");
+    }
+
+    records = records.filter(r => r.id !== id);
+    localStorage.setItem(`crm_${collection}`, JSON.stringify(records));
+
+    this.logAudit('delete', `Deleted ${collection} record ${id}`, user, record.team_id);
+  }
+
+  logAudit(action, details, user, team_id = 'none') {
     const allowedActions = ['login', 'logout', 'create', 'update', 'delete', 'assign', 'approve', 'import', 'export', 'stage_change'];
     if (!allowedActions.includes(action)) return;
 
-    const audits = JSON.parse(localStorage.getItem('crm_audits') || '[]');
+    const audits = JSON.parse(localStorage.getItem('crm_auditLogs') || '[]');
     audits.push({
+      id: 'audit_' + Math.random().toString(36).substr(2, 9),
       timestamp: new Date().toISOString(),
       action: action,
       details: details,
-      user_id: user ? user.id : 'unknown',
-      user_role: user ? user.role : 'unknown'
+      user_id: user ? user.id : 'system',
+      user_role: user ? user.role : 'system',
+      team_id: team_id
     });
-    localStorage.setItem('crm_audits', JSON.stringify(audits));
+    localStorage.setItem('crm_auditLogs', JSON.stringify(audits));
   }
 
-  getAudits() {
-    return JSON.parse(localStorage.getItem('crm_audits') || '[]');
+  logActivity(type, description, related_entity, related_id, user) {
+    if (related_entity === 'activities' || related_entity === 'auditLogs') return;
+
+    const activities = JSON.parse(localStorage.getItem('crm_activities') || '[]');
+    activities.push({
+      id: 'act_' + Math.random().toString(36).substr(2, 9),
+      type: type,
+      description: description,
+      related_entity: related_entity,
+      related_id: related_id,
+      created_by: user ? user.id : 'system',
+      owner_id: user ? user.id : 'system',
+      assigned_to: user ? user.id : 'system',
+      team_id: user ? user.team_id : 'none',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    });
+    localStorage.setItem('crm_activities', JSON.stringify(activities));
+  }
+
+  getAudits(user) {
+    return this.getRecords('auditLogs', user);
   }
 }
 
