@@ -288,9 +288,68 @@
       </div>
 
       <div id="tab-deals" class="tab-pane">
+        <div class="card" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+          <div>
+            <h3>Deals</h3>
+            <p>Delivery, finance, and post-sales tracking.</p>
+          </div>
+          <button class="btn btn-primary" onclick="window.dealsManager.openDealModal()">+ Create Deal Manually</button>
+        </div>
+
         <div class="card">
-          <h3>Deals</h3>
-          <p>Closed and closing deals.</p>
+          <div class="filter-bar" id="deals-filter-bar">
+            <input type="text" id="deal-filter-owner" placeholder="Filter by Owner ID" style="width: 150px;">
+            <input type="text" id="deal-filter-client" placeholder="Filter by Client" style="width: 150px;">
+            <select id="deal-filter-service">
+              <option value="">All Services</option>
+              <option value="Corporate Training">Corporate Training</option>
+              <option value="Video Content Development">Video Content Development</option>
+              <option value="Automation Consulting">Automation Consulting</option>
+            </select>
+            <input type="date" id="deal-filter-start" placeholder="Start Date" style="width: 130px;" title="Start Date">
+            <input type="date" id="deal-filter-end" placeholder="End Date" style="width: 130px;" title="End Date">
+            <select id="deal-filter-status">
+              <option value="">All Statuses</option>
+              <option value="Planning">Planning</option>
+              <option value="Confirmed">Confirmed</option>
+              <option value="Live">Live</option>
+              <option value="Completed">Completed</option>
+              <option value="Closed">Closed</option>
+              <option value="Cancelled">Cancelled</option>
+            </select>
+            <select id="deal-filter-payment">
+              <option value="">All Payments</option>
+              <option value="Pending">Pending</option>
+              <option value="Partial">Partial</option>
+              <option value="Received">Received</option>
+              <option value="Overdue">Overdue</option>
+            </select>
+            <select id="deal-filter-delivery">
+              <option value="">All Delivery</option>
+              <option value="Not Started">Not Started</option>
+              <option value="In Progress">In Progress</option>
+              <option value="Completed">Completed</option>
+            </select>
+          </div>
+
+          <div class="table-container">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Deal ID / Project</th>
+                  <th>Client</th>
+                  <th>Value</th>
+                  <th>Status</th>
+                  <th>Payment</th>
+                  <th>Delivery</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="deals-table-body">
+                <!-- Rendered by deals.js -->
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
 

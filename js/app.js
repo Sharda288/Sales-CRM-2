@@ -42,6 +42,7 @@
       if (window.leadsManager) window.leadsManager.render();
       if (window.pipelineManager) window.pipelineManager.render();
       if (window.requirementsManager) window.requirementsManager.render();
+      if (window.dealsManager) window.dealsManager.render();
     } else {
       loginView.classList.remove('hidden');
       appView.classList.add('hidden');
@@ -102,6 +103,9 @@
       }
       if (tabName === 'sourcing' && window.requirementsManager) {
         window.requirementsManager.render();
+      }
+      if (tabName === 'deals' && window.dealsManager) {
+        window.dealsManager.render();
       }
     });
   });

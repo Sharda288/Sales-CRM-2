@@ -56,7 +56,15 @@
     duplicateKeys: ['company_name', 'email', 'gst']
   },
   deals: {
-    fields: ['title', 'client_id', 'contact_id', 'amount', 'close_date', 'stage', 'probability', 'next_step', 'pipeline_stage', 'service_interest', 'priority', 'next_follow_up_date', 'requirement_id'],
+    fields: [
+      'title', 'client_id', 'contact_id', 'amount', 'close_date', 'stage', 'probability', 'next_step', 'pipeline_stage', 'service_interest', 'priority', 'next_follow_up_date', 'requirement_id', 'req_id',
+      'lead_id', 'project_name', 'service_type', 'owner_id', 'start_date', 'end_date', 'mode', 'location', 'status',
+      'selected_trainer_id', 'selected_trainer_name', 'selected_vendor_id', 'selected_vendor_name', 'trainer_rate', 'trainer_confirmation', 'trainer_documents', 'travel_details', 'hotel_booking', 'trainer_reminder',
+      'session_plan', 'attendance', 'day1_feedback', 'training_notes', 'booking_details', 'resource_links', 'recording_link', 'completion_status', 'batch_report_status',
+      'client_feedback', 'learner_feedback', 'trainer_feedback', 'post_test_status', 'completion_report', 'final_closure_status',
+      'client_invoice_no', 'client_invoice_date', 'invoice_amount', 'payment_status', 'payment_followup_date', 'trainer_invoice_status', 'trainer_payout_date', 'trainer_payment_status', 'reimbursement_bills',
+      'upsell_opp', 'cross_sell_opp', 'reference_request', 'weekly_touchpoint', 'repeat_business_status'
+    ],
     duplicateKeys: []
   },
   tasks: {

@@ -253,10 +253,31 @@
 
     const stage = req.po_status === 'Received' ? 'Converted' : 'Proposal Shared';
 
+    // Auto-pull selected candidate
+    const cands = db.getRecords('sourcingCandidates', user).filter(c => c.requirement_id === reqId && c.evaluation_status === 'Selected');
+    const selectedCand = cands.length > 0 ? cands[0] : null;
+
+    let selectedTrainerId = '';
+    let selectedTrainerName = '';
+    let selectedVendorId = '';
+    let selectedVendorName = '';
+
+    if (selectedCand) {
+      if (selectedCand.candidate_type === 'Trainer') {
+        selectedTrainerId = selectedCand.linked_trainer_id || '';
+        selectedTrainerName = selectedCand.candidate_name || '';
+      } else if (selectedCand.candidate_type === 'Vendor') {
+        selectedVendorId = selectedCand.linked_vendor_id || '';
+        selectedVendorName = selectedCand.candidate_name || '';
+      }
+    }
+
     const deal = db.createRecord('deals', {
       title: req.title,
+      project_name: req.title,
       client_id: req.client_id || '',
       contact_id: req.contact_id || '',
+      lead_id: req.lead_id || '',
       amount: req.po_amount || req.proposal_amount || req.budget,
       stage: stage,
       pipeline_stage: stage,
@@ -265,6 +286,12 @@
       req_id: req.id,
       service_interest: req.service_interest || '',
       priority: req.priority || 'Medium',
+      status: 'Planning',
+      selected_trainer_id: selectedTrainerId,
+      selected_trainer_name: selectedTrainerName,
+      selected_vendor_id: selectedVendorId,
+      selected_vendor_name: selectedVendorName,
+      trainer_rate: selectedCand ? selectedCand.commercial_rate : '',
       next_follow_up_date: ''
     }, user);
 
