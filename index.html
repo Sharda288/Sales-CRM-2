@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -356,32 +356,70 @@
       <div id="tab-database" class="tab-pane">
         <div class="card">
           <h3>Database Master Lists</h3>
-          <p>Central repository for master data.</p>
+          <p>Central repository for master data. Search and manage existing records across the system.</p>
         </div>
 
         <div class="card">
-          <h3>Clients</h3>
-          <div id="db-clients-list"></div>
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <h3>Clients</h3>
+            <button class="btn btn-primary btn-db-add" onclick="window.databaseManager.openModal('clients')">+ Add Client</button>
+          </div>
+          <input type="text" id="db-search-clients" class="form-control" placeholder="Search Clients..." style="margin: 10px 0; max-width: 300px;">
+          <div id="db-clients-list" class="table-container"></div>
         </div>
 
         <div class="card">
-          <h3>Contacts</h3>
-          <div id="db-contacts-list"></div>
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <h3>Contacts</h3>
+            <button class="btn btn-primary btn-db-add" onclick="window.databaseManager.openModal('contacts')">+ Add Contact</button>
+          </div>
+          <input type="text" id="db-search-contacts" class="form-control" placeholder="Search Contacts..." style="margin: 10px 0; max-width: 300px;">
+          <div id="db-contacts-list" class="table-container"></div>
         </div>
 
         <div class="card">
-          <h3>Trainers</h3>
-          <div id="db-trainers-list"></div>
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <h3>Vendors</h3>
+            <button class="btn btn-primary btn-db-add" onclick="window.databaseManager.openModal('vendors')">+ Add Vendor</button>
+          </div>
+          <input type="text" id="db-search-vendors" class="form-control" placeholder="Search Vendors..." style="margin: 10px 0; max-width: 300px;">
+          <div id="db-vendors-list" class="table-container"></div>
         </div>
 
         <div class="card">
-          <h3>Vendors</h3>
-          <div id="db-vendors-list"></div>
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <h3>Trainers</h3>
+            <button class="btn btn-primary btn-db-add" onclick="window.databaseManager.openModal('trainers')">+ Add Trainer</button>
+          </div>
+          <input type="text" id="db-search-trainers" class="form-control" placeholder="Search Trainers..." style="margin: 10px 0; max-width: 300px;">
+          <div id="db-trainers-list" class="table-container"></div>
         </div>
 
         <div class="card">
-          <h3>Service Database</h3>
-          <div id="db-service-list"></div>
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <h3>Service Lines / Training Categories</h3>
+            <button class="btn btn-primary btn-db-add" onclick="window.databaseManager.openModal('serviceLines')">+ Add Service Line</button>
+          </div>
+          <input type="text" id="db-search-serviceLines" class="form-control" placeholder="Search Service Lines..." style="margin: 10px 0; max-width: 300px;">
+          <div id="db-serviceLines-list" class="table-container"></div>
+        </div>
+
+        <div class="card db-admin-only" id="db-admin-users" style="display: none;">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <h3>Users</h3>
+            <button class="btn btn-primary btn-db-add" onclick="window.databaseManager.openModal('users')">+ Add User</button>
+          </div>
+          <input type="text" id="db-search-users" class="form-control" placeholder="Search Users..." style="margin: 10px 0; max-width: 300px;">
+          <div id="db-users-list" class="table-container"></div>
+        </div>
+
+        <div class="card db-admin-only" id="db-admin-teams" style="display: none;">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <h3>Teams</h3>
+            <button class="btn btn-primary btn-db-add" onclick="window.databaseManager.openModal('teams')">+ Add Team</button>
+          </div>
+          <input type="text" id="db-search-teams" class="form-control" placeholder="Search Teams..." style="margin: 10px 0; max-width: 300px;">
+          <div id="db-teams-list" class="table-container"></div>
         </div>
       </div>
 
@@ -785,9 +823,32 @@
   <script src="js/db.js"></script>
   <script src="js/import.js"></script>
   <script src="js/auth.js"></script>
-  <script src="js/leads.js"></script>
-  <script src="js/pipeline.js"></script>
+
+  <!-- Database Master Modal -->
+  <div id="modal-database" class="modal-overlay hidden">
+    <div class="modal" style="max-width: 600px;">
+      <div class="modal-header">
+        <h3 id="modal-database-title">Manage Record</h3>
+        <button class="btn btn-secondary" id="btn-close-database-modal">Close</button>
+      </div>
+      <form id="form-database">
+        <input type="hidden" id="db-collection">
+        <input type="hidden" id="db-record-id">
+        <div id="db-dynamic-fields" style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+          <!-- Dynamically generated based on schema -->
+        </div>
+        <div style="margin-top: 20px;">
+          <button type="submit" class="btn btn-primary" style="width: 100%;">Save Record</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="js/database.js"></script>
+  <script src="js/deals.js"></script>
   <script src="js/requirements.js"></script>
+  <script src="js/pipeline.js"></script>
+  <script src="js/leads.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>

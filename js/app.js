@@ -37,7 +37,7 @@
 
       applyRoleRestrictions(user);
       renderDashboard();
-      renderDatabaseTab();
+      if (window.databaseManager) window.databaseManager.render();
       renderAudits();
       if (window.leadsManager) window.leadsManager.render();
       if (window.pipelineManager) window.pipelineManager.render();
@@ -107,6 +107,9 @@
       if (tabName === 'deals' && window.dealsManager) {
         window.dealsManager.render();
       }
+      if (tabName === 'database' && window.databaseManager) {
+        window.databaseManager.render();
+      }
     });
   });
 
@@ -153,13 +156,7 @@
     renderTable(dashboardRecords, 'leads', ['first_name', 'last_name', 'email', 'company_name']);
   }
 
-  function renderDatabaseTab() {
-    renderTable(document.getElementById('db-clients-list'), 'clients', ['company_name', 'industry', 'gst']);
-    renderTable(document.getElementById('db-contacts-list'), 'contacts', ['first_name', 'last_name', 'email', 'linkedin']);
-    renderTable(document.getElementById('db-trainers-list'), 'trainers', ['first_name', 'last_name', 'expertise']);
-    renderTable(document.getElementById('db-vendors-list'), 'vendors', ['company_name', 'services_provided', 'gst']);
-    renderTable(document.getElementById('db-service-list'), 'requirements', ['title', 'client_id', 'status']);
-  }
+
 
   function renderAudits() {
     const user = auth.getCurrentUser();
@@ -235,7 +232,7 @@
 
     // Refresh UI
     renderDashboard();
-    renderDatabaseTab();
+    if (window.databaseManager) window.databaseManager.render();
     renderAudits();
   });
 

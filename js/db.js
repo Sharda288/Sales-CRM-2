@@ -1,4 +1,4 @@
-﻿class Database {
+class Database {
   constructor() {
     this.seedData();
   }
@@ -157,17 +157,67 @@
     if (!record) return;
 
     if (!this.canAccessRecord(user, record)) {
+      this.logAudit('delete_attempt', `Failed delete attempt on ${collection} ${id} (Unauthorized)`, user, record.team_id);
       throw new Error("Unauthorized to delete this record");
+    }
+
+    // Safe Delete Checks
+    let links = [];
+    const checkLinks = (targetColl, key, matchVal) => {
+      const recs = JSON.parse(localStorage.getItem(`crm_${targetColl}`) || '[]');
+      const count = recs.filter(r => r[key] === matchVal).length;
+      if (count > 0) links.push(`${count} in ${targetColl}`);
+    };
+
+    if (collection === 'clients') {
+      checkLinks('contacts', 'client_id', id);
+      checkLinks('requirements', 'client_id', id);
+      checkLinks('deals', 'client_id', id);
+      checkLinks('invoices', 'client_id', id);
+    } else if (collection === 'contacts') {
+      checkLinks('requirements', 'contact_id', id);
+      checkLinks('deals', 'contact_id', id);
+    } else if (collection === 'vendors') {
+      checkLinks('sourcingCandidates', 'linked_vendor_id', id);
+      checkLinks('deals', 'selected_vendor_id', id);
+      checkLinks('purchaseOrders', 'vendor_id', id);
+    } else if (collection === 'trainers') {
+      checkLinks('sourcingCandidates', 'linked_trainer_id', id);
+      checkLinks('deals', 'selected_trainer_id', id);
+    } else if (collection === 'users') {
+      checkLinks('leads', 'owner_id', id);
+      checkLinks('requirements', 'owner_id', id);
+      checkLinks('deals', 'owner_id', id);
+      checkLinks('tasks', 'owner_id', id);
+      checkLinks('tasks', 'assigned_to', id);
+      checkLinks('teams', 'manager_id', id);
+    } else if (collection === 'teams') {
+      checkLinks('users', 'team_id', id);
+    } else if (collection === 'serviceLines') {
+      // service lines match on 'name', not 'id' usually if we just use the text field in schema, but we will check string match just in case.
+      const sname = record.name;
+      if (sname) {
+        checkLinks('leads', 'service_interest', sname);
+        checkLinks('requirements', 'service_interest', sname);
+        checkLinks('deals', 'service_type', sname);
+        checkLinks('deals', 'service_interest', sname);
+      }
+    }
+
+    if (links.length > 0) {
+      this.logAudit('delete_attempt', `Blocked delete on ${collection} ${id} (Linked to ${links.join(', ')})`, user, record.team_id);
+      throw new Error(`Cannot delete ${collection} record. It is linked to: ${links.join(', ')}.`);
     }
 
     records = records.filter(r => r.id !== id);
     localStorage.setItem(`crm_${collection}`, JSON.stringify(records));
 
     this.logAudit('delete', `Deleted ${collection} record ${id}`, user, record.team_id);
+    this.logActivity('delete', `Deleted ${collection}`, collection, id, user);
   }
 
   logAudit(action, details, user, team_id = 'none') {
-    const allowedActions = ['login', 'logout', 'create', 'update', 'delete', 'assign', 'approve', 'import', 'export', 'stage_change', 'profile_shared', 'candidate_selected', 'proposal_update', 'po_update', 'convert_to_deal', 'deal_update', 'trainer_assigned', 'vendor_assigned', 'delivery_update', 'invoice_update', 'payment_update', 'feedback_update', 'close_deal'];
+    const allowedActions = ['login', 'logout', 'create', 'update', 'delete', 'assign', 'approve', 'import', 'export', 'stage_change', 'profile_shared', 'candidate_selected', 'proposal_update', 'po_update', 'convert_to_deal', 'deal_update', 'trainer_assigned', 'vendor_assigned', 'delivery_update', 'invoice_update', 'payment_update', 'feedback_update', 'close_deal', 'delete_attempt', 'duplicate_merge'];
     if (!allowedActions.includes(action)) return;
 
     const audits = JSON.parse(localStorage.getItem('crm_auditLogs') || '[]');

@@ -7,6 +7,10 @@
     fields: ['name', 'description', 'manager_id'],
     duplicateKeys: ['name']
   },
+  serviceLines: {
+    fields: ['name', 'description', 'status'],
+    duplicateKeys: ['name']
+  },
   leads: {
     fields: [
       'company_name', 'contact_person', 'designation', 'email', 'phone',
