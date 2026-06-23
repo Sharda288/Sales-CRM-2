@@ -294,7 +294,10 @@
             <h3>Deals</h3>
             <p>Delivery, finance, and post-sales tracking.</p>
           </div>
-          <button class="btn btn-primary" onclick="window.dealsManager.openDealModal()">+ Create Deal Manually</button>
+          <div style="display: flex; gap: 8px;">
+            <button class="btn btn-secondary" id="btn-deals-convert-req" onclick="window.dealsManager.convertFromRequirement()">Convert from Requirement</button>
+            <button class="btn btn-primary" onclick="window.dealsManager.openDealModal()">+ Add Deal</button>
+          </div>
         </div>
 
         <div class="card">
@@ -339,6 +342,7 @@
                 <tr>
                   <th>Deal ID / Project</th>
                   <th>Client</th>
+                  <th>Service</th>
                   <th>Value</th>
                   <th>Status</th>
                   <th>Payment</th>
@@ -893,6 +897,169 @@
         </div>
 
         <button type="submit" class="btn btn-primary" style="margin-top: 16px;">Save Candidate</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Deal Modal -->
+  <div id="modal-deal" class="modal-overlay hidden">
+    <div class="modal" style="width: 1000px; max-width: 95vw; max-height: 90vh; overflow-y: auto;">
+      <div class="modal-header">
+        <h3 id="modal-deal-title">Deal Details</h3>
+        <button type="button" class="btn btn-secondary" id="btn-close-deal-modal">Close</button>
+      </div>
+      <form id="form-deal">
+        <input type="hidden" id="deal-id">
+        <input type="hidden" id="deal-req-id">
+        <input type="hidden" id="deal-lead-id">
+        <input type="hidden" id="deal-trainer-id">
+        <input type="hidden" id="deal-vendor-id">
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px;">
+          <!-- Column 1: Setup & Finance -->
+          <div class="card" style="padding: 12px;">
+            <h4>1. Setup & Finance</h4>
+            <div class="form-group"><label>Project Name</label><input type="text" id="deal-project" class="form-control" required></div>
+            <div class="form-group"><label>Client ID</label><input type="text" id="deal-client" class="form-control"></div>
+            <div class="form-group"><label>Contact ID</label><input type="text" id="deal-contact" class="form-control"></div>
+            <div class="form-group"><label>Service Type</label><input type="text" id="deal-service" class="form-control"></div>
+            <div class="form-group"><label>Deal Amount</label><input type="number" id="deal-amount" class="form-control"></div>
+            <div class="form-group"><label>Owner ID</label><input type="text" id="deal-owner" class="form-control"></div>
+            <div class="form-group"><label>Start Date</label><input type="date" id="deal-start" class="form-control"></div>
+            <div class="form-group"><label>End Date</label><input type="date" id="deal-end" class="form-control"></div>
+            <div class="form-group"><label>Mode</label><input type="text" id="deal-mode" class="form-control"></div>
+            <div class="form-group"><label>Location</label><input type="text" id="deal-loc" class="form-control"></div>
+            <div class="form-group"><label>Deal Status</label>
+              <select id="deal-status" class="form-control">
+                <option value="Planning">Planning</option>
+                <option value="Confirmed">Confirmed</option>
+                <option value="Live">Live</option>
+                <option value="Completed">Completed</option>
+                <option value="Closed">Closed</option>
+                <option value="Cancelled">Cancelled</option>
+              </select>
+            </div>
+            <hr style="margin: 10px 0;">
+            <h4>Invoicing & Payment</h4>
+            <div class="form-group"><label>Client Invoice No</label><input type="text" id="deal-inv-no" class="form-control"></div>
+            <div class="form-group"><label>Invoice Date</label><input type="date" id="deal-inv-date" class="form-control"></div>
+            <div class="form-group"><label>Invoice Amount</label><input type="number" id="deal-inv-amt" class="form-control"></div>
+            <div class="form-group"><label>Payment Status</label>
+              <select id="deal-pay-status" class="form-control">
+                <option value="Pending">Pending</option>
+                <option value="Partial">Partial</option>
+                <option value="Received">Received</option>
+                <option value="Overdue">Overdue</option>
+              </select>
+            </div>
+            <div class="form-group"><label>Payment Follow-up</label><input type="date" id="deal-pay-follow" class="form-control"></div>
+          </div>
+
+          <!-- Column 2: Trainer & Delivery -->
+          <div class="card" style="padding: 12px;">
+            <h4>2. Resources & Logistics</h4>
+            <div class="form-group"><label>Trainer Name</label>
+              <div style="display: flex; gap: 4px;">
+                <input type="text" id="deal-trainer-name" class="form-control" readonly>
+                <button type="button" class="btn btn-secondary" onclick="window.dealsManager.assignTrainer()" style="padding: 0 8px;">Assign</button>
+              </div>
+            </div>
+            <div class="form-group"><label>Vendor Name</label>
+              <div style="display: flex; gap: 4px;">
+                <input type="text" id="deal-vendor-name" class="form-control" readonly>
+                <button type="button" class="btn btn-secondary" onclick="window.dealsManager.assignVendor()" style="padding: 0 8px;">Assign</button>
+              </div>
+            </div>
+            <div class="form-group"><label>Trainer Rate</label><input type="text" id="deal-trainer-rate" class="form-control"></div>
+            <div class="form-group"><label>Trainer Confirmation</label>
+              <select id="deal-trainer-conf" class="form-control">
+                <option value="Pending">Pending</option>
+                <option value="Confirmed">Confirmed</option>
+              </select>
+            </div>
+            <div class="form-group"><label>Trainer Documents</label><input type="text" id="deal-trainer-docs" class="form-control"></div>
+            <div class="form-group"><label>Travel Details</label><input type="text" id="deal-travel" class="form-control"></div>
+            <div class="form-group"><label>Hotel Booking</label><input type="text" id="deal-hotel" class="form-control"></div>
+            <div class="form-group"><label>Trainer Reminder</label>
+              <select id="deal-reminder" class="form-control">
+                <option value="Not Sent">Not Sent</option>
+                <option value="Sent">Sent</option>
+              </select>
+            </div>
+            <hr style="margin: 10px 0;">
+            <h4>Delivery Tracking</h4>
+            <div class="form-group"><label>Delivery Status</label>
+              <select id="deal-delivery-status" class="form-control">
+                <option value="Not Started">Not Started</option>
+                <option value="In Progress">In Progress</option>
+                <option value="Partially Completed">Partially Completed</option>
+                <option value="Completed">Completed</option>
+                <option value="Cancelled">Cancelled</option>
+              </select>
+            </div>
+            <div class="form-group"><label>Session Plan</label><input type="text" id="deal-session" class="form-control"></div>
+            <div class="form-group"><label>Attendance List</label><input type="text" id="deal-attendance" class="form-control"></div>
+            <div class="form-group"><label>Day 1 Check-in</label>
+              <select id="deal-day1" class="form-control">
+                <option value="Pending">Pending</option>
+                <option value="Done">Done</option>
+                <option value="Issues Reported">Issues Reported</option>
+              </select>
+            </div>
+            <div class="form-group"><label>Training Notes</label><textarea id="deal-notes" class="form-control" rows="2"></textarea></div>
+            <div class="form-group"><label>Booking Details</label><input type="text" id="deal-booking" class="form-control"></div>
+            <div class="form-group"><label>Resource Links</label><input type="text" id="deal-res-links" class="form-control"></div>
+            <div class="form-group"><label>Recording Link</label><input type="text" id="deal-rec-link" class="form-control"></div>
+            <div class="form-group"><label>Batch Report Status</label><input type="text" id="deal-batch-status" class="form-control"></div>
+          </div>
+
+          <!-- Column 3: Post-Sales & Feedback -->
+          <div class="card" style="padding: 12px;">
+            <h4>3. Post-Sales & Closure</h4>
+            <div class="form-group"><label>Trainer Invoice Ref</label><input type="text" id="deal-tr-inv" class="form-control"></div>
+            <div class="form-group"><label>Trainer Payout Date</label><input type="date" id="deal-tr-pay-date" class="form-control"></div>
+            <div class="form-group"><label>Trainer Payment Status</label>
+              <select id="deal-tr-pay-status" class="form-control">
+                <option value="Pending">Pending</option>
+                <option value="Paid">Paid</option>
+                <option value="Hold">Hold</option>
+              </select>
+            </div>
+            <div class="form-group"><label>Reimbursements</label><input type="text" id="deal-reimb" class="form-control"></div>
+            <hr style="margin: 10px 0;">
+            <div class="form-group"><label>Client Feedback</label><input type="text" id="deal-fb-client" class="form-control"></div>
+            <div class="form-group"><label>Learner Feedback</label><input type="text" id="deal-fb-learner" class="form-control"></div>
+            <div class="form-group"><label>Trainer Feedback</label><input type="text" id="deal-fb-trainer" class="form-control"></div>
+            <div class="form-group"><label>Post Test Status</label><input type="text" id="deal-post-test" class="form-control"></div>
+            <div class="form-group"><label>Completion Report</label><input type="text" id="deal-comp-report" class="form-control"></div>
+            <div class="form-group"><label>Final Closure</label>
+              <select id="deal-closure" class="form-control">
+                <option value="Pending">Pending</option>
+                <option value="Closed">Closed</option>
+              </select>
+            </div>
+            <hr style="margin: 10px 0;">
+            <div class="form-group"><label>Upsell Opportunity</label><textarea id="deal-upsell" class="form-control" rows="2"></textarea></div>
+            <div class="form-group"><label>Cross-Sell</label><input type="text" id="deal-cross" class="form-control"></div>
+            <div class="form-group"><label>Reference Request</label><input type="text" id="deal-ref" class="form-control"></div>
+            <div class="form-group"><label>Weekly Touchpoint</label><input type="text" id="deal-touch" class="form-control"></div>
+            <div class="form-group"><label>Repeat Business</label><input type="text" id="deal-repeat" class="form-control"></div>
+          </div>
+        </div>
+
+        <div style="margin-top: 16px; display: flex; gap: 10px; flex-wrap: wrap;">
+          <button type="submit" class="btn btn-primary">Save Deal</button>
+          <!-- SOP Quick Actions -->
+          <button type="button" class="btn btn-secondary" onclick="window.dealsManager.focusField('deal-session')">Add Delivery Schedule</button>
+          <button type="button" class="btn btn-secondary" onclick="window.dealsManager.focusField('deal-booking')">Add Booking</button>
+          <button type="button" class="btn btn-secondary" onclick="window.dealsManager.focusField('deal-inv-no')">Upload Invoice</button>
+          <button type="button" class="btn btn-secondary" onclick="window.dealsManager.focusField('deal-tr-inv')">Upload Trainer Invoice</button>
+          <button type="button" class="btn btn-secondary" onclick="window.dealsManager.focusField('deal-pay-follow')">Add Payment Follow-up</button>
+          <button type="button" class="btn btn-secondary" onclick="window.dealsManager.focusField('deal-fb-client')">Add Feedback</button>
+          <button type="button" class="btn btn-secondary" onclick="window.dealsManager.markCompleted()">Mark Completed</button>
+          <button type="button" class="btn btn-secondary" onclick="window.dealsManager.closeDeal()">Close Deal</button>
+          <button type="button" class="btn btn-secondary" onclick="window.dealsManager.focusField('deal-upsell')">Add Upsell Follow-up</button>
+        </div>
       </form>
     </div>
   </div>

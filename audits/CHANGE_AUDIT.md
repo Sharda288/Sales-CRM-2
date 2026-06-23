@@ -1,157 +1,237 @@
 ﻿# AI Change Audit Report
 
 ## Generated On
-2026-06-23_16-49-06
+2026-06-23_17-03-00
 
 ## Branch
 main
 
 ## Baseline Commit
-8cd606e
+6e940fa
 
 ## Task Summary
-Requirements & Sourcing SOP upgrade: intake details, import requirements, confirmation logic, sourcing actions, audit hardening, and safe rendering
+Deals SOP upgrade: restored deal modal, convert from requirement, safe table rendering, quick actions, and requirement conversion tracing
 
 ## Git Status
 ```text
  M index.html
- M js/db.js
- M js/requirements.js
- M js/schema.js
+ M js/deals.js
 ```
 
 ## Files Changed
 ```text
 M	index.html
-M	js/db.js
-M	js/requirements.js
-M	js/schema.js
+M	js/deals.js
 ```
 
 ## Change Summary
 ```text
- index.html         |  43 ++++++++-
- js/db.js           |   2 +-
- js/requirements.js | 278 ++++++++++++++++++++++++++++++++++++++++++++++++-----
- js/schema.js       |   5 +-
- 4 files changed, 298 insertions(+), 30 deletions(-)
+ index.html  | 169 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++-
+ js/deals.js | 152 ++++++++++++++++++++++++++++++++++++++++++++++++++----
+ 2 files changed, 311 insertions(+), 10 deletions(-)
 ```
 
 ## Full Diff
 ```diff
 diff --git a/index.html b/index.html
-index efbbd36..229dc9f 100644
+index 229dc9f..1384eda 100644
 --- a/index.html
 +++ b/index.html
-@@ -210,7 +210,10 @@
-             <h3>Requirements & Sourcing</h3>
-             <p>Fulfill client needs.</p>
+@@ -294,7 +294,10 @@
+             <h3>Deals</h3>
+             <p>Delivery, finance, and post-sales tracking.</p>
            </div>
--          <button class="btn btn-primary" onclick="window.requirementsManager.openRequirementModal()">+ Add Requirement</button>
+-          <button class="btn btn-primary" onclick="window.dealsManager.openDealModal()">+ Create Deal Manually</button>
 +          <div style="display: flex; gap: 8px;">
-+            <button class="btn btn-secondary hidden" id="btn-import-reqs">Import Requirements</button>
-+            <button class="btn btn-primary" onclick="window.requirementsManager.openRequirementModal()">+ Add Requirement</button>
++            <button class="btn btn-secondary" id="btn-deals-convert-req" onclick="window.dealsManager.convertFromRequirement()">Convert from Requirement</button>
++            <button class="btn btn-primary" onclick="window.dealsManager.openDealModal()">+ Add Deal</button>
 +          </div>
          </div>
  
          <div class="card">
-@@ -469,6 +472,7 @@
-               <option value="leads">Leads</option>
-               <option value="contacts">Contacts</option>
-               <option value="clients">Clients</option>
-+              <option value="requirements">Requirements</option>
-               <option value="trainers">Trainers</option>
-               <option value="vendors">Vendors</option>
-             </select>
-@@ -650,6 +654,12 @@
-             <h4>1. Intake Details</h4>
-             <div class="form-group"><label>Title</label><input type="text" id="req-title" class="form-control" required></div>
-             <div class="form-group"><label>Client ID</label><input type="text" id="req-client-id" class="form-control"></div>
-+            <div class="form-group"><label>Contact ID</label><input type="text" id="req-contact-id" class="form-control"></div>
-+            <div class="form-group"><label>Company Name</label><input type="text" id="req-company" class="form-control"></div>
-+            <div class="form-group"><label>Contact Person</label><input type="text" id="req-contact-person" class="form-control"></div>
-+            <div class="form-group"><label>Designation</label><input type="text" id="req-designation" class="form-control"></div>
-+            <div class="form-group"><label>Phone</label><input type="text" id="req-phone" class="form-control"></div>
-+            <div class="form-group"><label>Email</label><input type="email" id="req-email" class="form-control"></div>
-             <div class="form-group"><label>Service Type</label>
-               <select id="req-service" class="form-control">
-                 <option value="">None</option>
-@@ -726,13 +736,34 @@
-             <div class="form-group"><label>PO Received Date</label><input type="date" id="req-po-date" class="form-control"></div>
-             <div class="form-group"><label>PO Attachment Ref</label><input type="text" id="req-po-att" class="form-control"></div>
-             <div class="form-group"><label>Commercial Remarks</label><textarea id="req-comm-remarks" class="form-control" rows="2"></textarea></div>
-+            <hr style="margin: 10px 0;">
-+            <h4>Attachments / References</h4>
-+            <div class="form-group"><label>Requirement Document</label><input type="text" id="req-doc-ref" class="form-control" placeholder="Link or note"></div>
-+            <div class="form-group"><label>Email Reference</label><input type="text" id="req-email-ref" class="form-control" placeholder="Link or note"></div>
-+            <div class="form-group"><label>Proposal Attachment</label><input type="text" id="req-prop-att-ref" class="form-control" placeholder="Link or note"></div>
-+            <hr style="margin: 10px 0;">
-+            <h4>Confirmation</h4>
-+            <div class="form-group"><label>Confirmation Type</label>
-+              <select id="req-confirm-type" class="form-control">
-+                <option value="None">None</option>
-+                <option value="PO Received">PO Received</option>
-+                <option value="Verbal Approval">Verbal Approval</option>
-+                <option value="Email Approval">Email Approval</option>
-+                <option value="Internal Approval">Internal Approval</option>
+@@ -339,6 +342,7 @@
+                 <tr>
+                   <th>Deal ID / Project</th>
+                   <th>Client</th>
++                  <th>Service</th>
+                   <th>Value</th>
+                   <th>Status</th>
+                   <th>Payment</th>
+@@ -897,6 +901,169 @@
+     </div>
+   </div>
+ 
++  <!-- Deal Modal -->
++  <div id="modal-deal" class="modal-overlay hidden">
++    <div class="modal" style="width: 1000px; max-width: 95vw; max-height: 90vh; overflow-y: auto;">
++      <div class="modal-header">
++        <h3 id="modal-deal-title">Deal Details</h3>
++        <button type="button" class="btn btn-secondary" id="btn-close-deal-modal">Close</button>
++      </div>
++      <form id="form-deal">
++        <input type="hidden" id="deal-id">
++        <input type="hidden" id="deal-req-id">
++        <input type="hidden" id="deal-lead-id">
++        <input type="hidden" id="deal-trainer-id">
++        <input type="hidden" id="deal-vendor-id">
++
++        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px;">
++          <!-- Column 1: Setup & Finance -->
++          <div class="card" style="padding: 12px;">
++            <h4>1. Setup & Finance</h4>
++            <div class="form-group"><label>Project Name</label><input type="text" id="deal-project" class="form-control" required></div>
++            <div class="form-group"><label>Client ID</label><input type="text" id="deal-client" class="form-control"></div>
++            <div class="form-group"><label>Contact ID</label><input type="text" id="deal-contact" class="form-control"></div>
++            <div class="form-group"><label>Service Type</label><input type="text" id="deal-service" class="form-control"></div>
++            <div class="form-group"><label>Deal Amount</label><input type="number" id="deal-amount" class="form-control"></div>
++            <div class="form-group"><label>Owner ID</label><input type="text" id="deal-owner" class="form-control"></div>
++            <div class="form-group"><label>Start Date</label><input type="date" id="deal-start" class="form-control"></div>
++            <div class="form-group"><label>End Date</label><input type="date" id="deal-end" class="form-control"></div>
++            <div class="form-group"><label>Mode</label><input type="text" id="deal-mode" class="form-control"></div>
++            <div class="form-group"><label>Location</label><input type="text" id="deal-loc" class="form-control"></div>
++            <div class="form-group"><label>Deal Status</label>
++              <select id="deal-status" class="form-control">
++                <option value="Planning">Planning</option>
++                <option value="Confirmed">Confirmed</option>
++                <option value="Live">Live</option>
++                <option value="Completed">Completed</option>
++                <option value="Closed">Closed</option>
++                <option value="Cancelled">Cancelled</option>
 +              </select>
 +            </div>
-+            <div class="form-group"><label>Confirmation Date</label><input type="date" id="req-confirm-date" class="form-control"></div>
-+            <div class="form-group"><label>Confirmation Remarks</label><textarea id="req-confirm-remarks" class="form-control" rows="2"></textarea></div>
-           </div>
-         </div>
- 
-         <div class="card" style="margin-top: 16px;" id="sourcing-tracker-section">
--          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 6px;">
-             <h4>3. Sourcing Tracker</h4>
--            <button type="button" class="btn btn-secondary" onclick="window.requirementsManager.openCandidateModal()">+ Add Candidate</button>
-+            <div style="display: flex; gap: 6px; flex-wrap: wrap;">
-+              <button type="button" class="btn btn-secondary" onclick="window.requirementsManager.openCandidateModal(null, 'Trainer')">+ Add Trainer</button>
-+              <button type="button" class="btn btn-secondary" onclick="window.requirementsManager.openCandidateModal(null, 'Vendor')">+ Add Vendor</button>
++            <hr style="margin: 10px 0;">
++            <h4>Invoicing & Payment</h4>
++            <div class="form-group"><label>Client Invoice No</label><input type="text" id="deal-inv-no" class="form-control"></div>
++            <div class="form-group"><label>Invoice Date</label><input type="date" id="deal-inv-date" class="form-control"></div>
++            <div class="form-group"><label>Invoice Amount</label><input type="number" id="deal-inv-amt" class="form-control"></div>
++            <div class="form-group"><label>Payment Status</label>
++              <select id="deal-pay-status" class="form-control">
++                <option value="Pending">Pending</option>
++                <option value="Partial">Partial</option>
++                <option value="Received">Received</option>
++                <option value="Overdue">Overdue</option>
++              </select>
 +            </div>
-           </div>
-           <div class="table-container">
-             <table class="data-table">
-@@ -756,9 +787,13 @@
-           </div>
-         </div>
- 
--        <div style="margin-top: 16px; display: flex; gap: 10px;">
++            <div class="form-group"><label>Payment Follow-up</label><input type="date" id="deal-pay-follow" class="form-control"></div>
++          </div>
++
++          <!-- Column 2: Trainer & Delivery -->
++          <div class="card" style="padding: 12px;">
++            <h4>2. Resources & Logistics</h4>
++            <div class="form-group"><label>Trainer Name</label>
++              <div style="display: flex; gap: 4px;">
++                <input type="text" id="deal-trainer-name" class="form-control" readonly>
++                <button type="button" class="btn btn-secondary" onclick="window.dealsManager.assignTrainer()" style="padding: 0 8px;">Assign</button>
++              </div>
++            </div>
++            <div class="form-group"><label>Vendor Name</label>
++              <div style="display: flex; gap: 4px;">
++                <input type="text" id="deal-vendor-name" class="form-control" readonly>
++                <button type="button" class="btn btn-secondary" onclick="window.dealsManager.assignVendor()" style="padding: 0 8px;">Assign</button>
++              </div>
++            </div>
++            <div class="form-group"><label>Trainer Rate</label><input type="text" id="deal-trainer-rate" class="form-control"></div>
++            <div class="form-group"><label>Trainer Confirmation</label>
++              <select id="deal-trainer-conf" class="form-control">
++                <option value="Pending">Pending</option>
++                <option value="Confirmed">Confirmed</option>
++              </select>
++            </div>
++            <div class="form-group"><label>Trainer Documents</label><input type="text" id="deal-trainer-docs" class="form-control"></div>
++            <div class="form-group"><label>Travel Details</label><input type="text" id="deal-travel" class="form-control"></div>
++            <div class="form-group"><label>Hotel Booking</label><input type="text" id="deal-hotel" class="form-control"></div>
++            <div class="form-group"><label>Trainer Reminder</label>
++              <select id="deal-reminder" class="form-control">
++                <option value="Not Sent">Not Sent</option>
++                <option value="Sent">Sent</option>
++              </select>
++            </div>
++            <hr style="margin: 10px 0;">
++            <h4>Delivery Tracking</h4>
++            <div class="form-group"><label>Delivery Status</label>
++              <select id="deal-delivery-status" class="form-control">
++                <option value="Not Started">Not Started</option>
++                <option value="In Progress">In Progress</option>
++                <option value="Partially Completed">Partially Completed</option>
++                <option value="Completed">Completed</option>
++                <option value="Cancelled">Cancelled</option>
++              </select>
++            </div>
++            <div class="form-group"><label>Session Plan</label><input type="text" id="deal-session" class="form-control"></div>
++            <div class="form-group"><label>Attendance List</label><input type="text" id="deal-attendance" class="form-control"></div>
++            <div class="form-group"><label>Day 1 Check-in</label>
++              <select id="deal-day1" class="form-control">
++                <option value="Pending">Pending</option>
++                <option value="Done">Done</option>
++                <option value="Issues Reported">Issues Reported</option>
++              </select>
++            </div>
++            <div class="form-group"><label>Training Notes</label><textarea id="deal-notes" class="form-control" rows="2"></textarea></div>
++            <div class="form-group"><label>Booking Details</label><input type="text" id="deal-booking" class="form-control"></div>
++            <div class="form-group"><label>Resource Links</label><input type="text" id="deal-res-links" class="form-control"></div>
++            <div class="form-group"><label>Recording Link</label><input type="text" id="deal-rec-link" class="form-control"></div>
++            <div class="form-group"><label>Batch Report Status</label><input type="text" id="deal-batch-status" class="form-control"></div>
++          </div>
++
++          <!-- Column 3: Post-Sales & Feedback -->
++          <div class="card" style="padding: 12px;">
++            <h4>3. Post-Sales & Closure</h4>
++            <div class="form-group"><label>Trainer Invoice Ref</label><input type="text" id="deal-tr-inv" class="form-control"></div>
++            <div class="form-group"><label>Trainer Payout Date</label><input type="date" id="deal-tr-pay-date" class="form-control"></div>
++            <div class="form-group"><label>Trainer Payment Status</label>
++              <select id="deal-tr-pay-status" class="form-control">
++                <option value="Pending">Pending</option>
++                <option value="Paid">Paid</option>
++                <option value="Hold">Hold</option>
++              </select>
++            </div>
++            <div class="form-group"><label>Reimbursements</label><input type="text" id="deal-reimb" class="form-control"></div>
++            <hr style="margin: 10px 0;">
++            <div class="form-group"><label>Client Feedback</label><input type="text" id="deal-fb-client" class="form-control"></div>
++            <div class="form-group"><label>Learner Feedback</label><input type="text" id="deal-fb-learner" class="form-control"></div>
++            <div class="form-group"><label>Trainer Feedback</label><input type="text" id="deal-fb-trainer" class="form-control"></div>
++            <div class="form-group"><label>Post Test Status</label><input type="text" id="deal-post-test" class="form-control"></div>
++            <div class="form-group"><label>Completion Report</label><input type="text" id="deal-comp-report" class="form-control"></div>
++            <div class="form-group"><label>Final Closure</label>
++              <select id="deal-closure" class="form-control">
++                <option value="Pending">Pending</option>
++                <option value="Closed">Closed</option>
++              </select>
++            </div>
++            <hr style="margin: 10px 0;">
++            <div class="form-group"><label>Upsell Opportunity</label><textarea id="deal-upsell" class="form-control" rows="2"></textarea></div>
++            <div class="form-group"><label>Cross-Sell</label><input type="text" id="deal-cross" class="form-control"></div>
++            <div class="form-group"><label>Reference Request</label><input type="text" id="deal-ref" class="form-control"></div>
++            <div class="form-group"><label>Weekly Touchpoint</label><input type="text" id="deal-touch" class="form-control"></div>
++            <div class="form-group"><label>Repeat Business</label><input type="text" id="deal-repeat" class="form-control"></div>
++          </div>
++        </div>
++
 +        <div style="margin-top: 16px; display: flex; gap: 10px; flex-wrap: wrap;">
-           <button type="submit" class="btn btn-primary">Save Requirement</button>
-           <button type="button" class="btn btn-secondary" id="btn-convert-deal" onclick="window.requirementsManager.convertToDeal()">Convert to Deal</button>
-+          <button type="button" class="btn btn-secondary" id="btn-req-add-proposal" onclick="window.requirementsManager.focusProposal()">Add Proposal</button>
-+          <button type="button" class="btn btn-secondary" id="btn-req-upload-po" onclick="window.requirementsManager.focusPO()">Upload PO</button>
-+          <button type="button" class="btn btn-secondary" id="btn-req-lost" onclick="window.requirementsManager.markLost()">Mark Lost</button>
-+          <button type="button" class="btn btn-secondary" id="btn-req-hold" onclick="window.requirementsManager.markOnHold()">Mark On Hold</button>
-         </div>
-       </form>
-     </div>
-diff --git a/js/db.js b/js/db.js
-index 1bf188b..597fec2 100644
---- a/js/db.js
-+++ b/js/db.js
-@@ -217,7 +217,7 @@ class Database {
-   }
- 
-   logAudit(action, details, user, team_id = 'none') {
--    const allowedActions = ['login', 'logout', 'create', 'update', 'delete', 'assign', 'approve', 'import', 'export', 'stage_change', 'profile_shared', 'candidate_selected', 'proposal_update', 'po_update', 'convert_to_deal', 'deal_update', 'trainer_assigned', 'vendor_assigned', 'delivery_update', 'invoice_update', 'payment_update', 'feedback_update', 'close_deal', 'delete_attempt', 'duplicate_merge'];
-+    const allowedActions = ['login', 'logout', 'create', 'update', 'delete', 'assign', 'approve', 'import', 'export', 'stage_change', 'profile_shared', 'candidate_selected', 'candidate_shortlisted', 'proposal_update', 'po_update', 'convert_to_deal', 'deal_update', 'trainer_assigned', 'vendor_assigned', 'delivery_update', 'invoice_update', 'payment_update', 'feedback_update', 'close_deal', 'delete_attempt', 'duplicate_merge', 'status_change'];
-     if (!allowedActions.includes(action)) return;
- 
-     const audits = JSON.parse(localStorage.getItem('crm_auditLogs') || '[]');
-diff --git a/js/requirements.js b/js/requirements.js
-index 63a98d7..9526bde 100644
---- a/js/requirements.js
-+++ b/js/requirements.js
-@@ -1,4 +1,4 @@
--∩╗┐class RequirementsManager {
-+class RequirementsManager {
-   constructor() {
-     this.filterOwner = '';
-     this.filterService = '';
-@@ -12,6 +12,17 @@
++          <button type="submit" class="btn btn-primary">Save Deal</button>
++          <!-- SOP Quick Actions -->
++          <button type="button" class="btn btn-secondary" onclick="window.dealsManager.focusField('deal-session')">Add Delivery Schedule</button>
++          <button type="button" class="btn btn-secondary" onclick="window.dealsManager.focusField('deal-booking')">Add Booking</button>
++          <button type="button" class="btn btn-secondary" onclick="window.dealsManager.focusField('deal-inv-no')">Upload Invoice</button>
++          <button type="button" class="btn btn-secondary" onclick="window.dealsManager.focusField('deal-tr-inv')">Upload Trainer Invoice</button>
++          <button type="button" class="btn btn-secondary" onclick="window.dealsManager.focusField('deal-pay-follow')">Add Payment Follow-up</button>
++          <button type="button" class="btn btn-secondary" onclick="window.dealsManager.focusField('deal-fb-client')">Add Feedback</button>
++          <button type="button" class="btn btn-secondary" onclick="window.dealsManager.markCompleted()">Mark Completed</button>
++          <button type="button" class="btn btn-secondary" onclick="window.dealsManager.closeDeal()">Close Deal</button>
++          <button type="button" class="btn btn-secondary" onclick="window.dealsManager.focusField('deal-upsell')">Add Upsell Follow-up</button>
++        </div>
++      </form>
++    </div>
++  </div>
++
+   <script src="js/schema.js"></script>
+   <script src="js/db.js"></script>
+   <script src="js/import.js"></script>
+diff --git a/js/deals.js b/js/deals.js
+index 82b7028..82dcec4 100644
+--- a/js/deals.js
++++ b/js/deals.js
+@@ -13,6 +13,17 @@ class DealsManager {
      this.render();
    }
  
@@ -168,412 +248,217 @@ index 63a98d7..9526bde 100644
 +
    bindEvents() {
      const el = (id) => document.getElementById(id);
-     if (!el('req-filter-owner')) return;
-@@ -41,6 +52,58 @@
+     if (!el('deal-filter-owner')) return;
+@@ -34,6 +45,19 @@ class DealsManager {
        e.preventDefault();
-       this.saveCandidate();
+       this.saveDeal();
      });
 +
-+    // Import Requirements button
-+    const importBtn = el('btn-import-reqs');
-+    if (importBtn) {
-+      importBtn.addEventListener('click', () => {
-+        const currentUser = auth.getCurrentUser();
-+        if (!currentUser || currentUser.role === 'employee') {
-+          alert('Access denied');
-+          return;
++    const tbody = el('deals-table-body');
++    if (tbody) {
++      tbody.addEventListener('click', (e) => {
++        const btn = e.target.closest('.deal-action');
++        if (!btn) return;
++        const action = btn.getAttribute('data-action');
++        const dealId = btn.getAttribute('data-id');
++        if (action === 'view') {
++          this.openDealModal(dealId);
 +        }
-+        document.querySelectorAll('.nav-item').forEach(nav => nav.classList.remove('active'));
-+        const settingsNav = document.querySelector('[data-tab="settings"]');
-+        if (settingsNav) settingsNav.classList.add('active');
-+        document.querySelectorAll('.tab-pane').forEach(pane => pane.classList.remove('active'));
-+        document.getElementById('tab-settings').classList.add('active');
-+        document.getElementById('page-title').textContent = 'Settings';
-+        const sel = document.getElementById('import-collection');
-+        if (sel) sel.value = 'requirements';
-+        if (window.settingsManager) window.settingsManager.render();
-+      });
-+    }
-+
-+    // Req table delegation
-+    const reqTbody = el('req-table-body');
-+    if (reqTbody) {
-+      reqTbody.addEventListener('click', (e) => {
-+        const btn = e.target.closest('.req-action');
-+        if (!btn) return;
-+        const action = btn.getAttribute('data-action');
-+        const reqId = btn.getAttribute('data-id');
-+        if (action === 'view') this.openRequirementModal(reqId);
-+        else if (action === 'proposal') this.openRequirementModal(reqId, 'proposal');
-+        else if (action === 'po') this.openRequirementModal(reqId, 'po');
-+        else if (action === 'lost') this.markLostById(reqId);
-+        else if (action === 'hold') this.markOnHoldById(reqId);
-+      });
-+    }
-+
-+    // Sourcing table delegation
-+    const sourcingTbody = el('sourcing-table-body');
-+    if (sourcingTbody) {
-+      sourcingTbody.addEventListener('click', (e) => {
-+        const btn = e.target.closest('.cand-action');
-+        if (!btn) return;
-+        const action = btn.getAttribute('data-action');
-+        const candId = btn.getAttribute('data-id');
-+        if (action === 'edit') this.openCandidateModal(candId);
-+        else if (action === 'shortlist') this.quickCandidateAction(candId, 'Shortlisted');
-+        else if (action === 'share') this.shareCandidateProfile(candId);
-+        else if (action === 'select') this.quickCandidateAction(candId, 'Selected');
 +      });
 +    }
    }
  
-   calculateSLA(createdDateStr, sharedDateStr) {
-@@ -76,9 +139,17 @@
-     if (!tbody) return;
+   render() {
+@@ -42,13 +66,16 @@ class DealsManager {
  
      const user = auth.getCurrentUser();
-+    if (!user) return;
-     let reqs = db.getRecords('requirements', user);
-     const allCandidates = db.getRecords('sourcingCandidates', user);
+     let deals = db.getRecords('deals', user);
++    let clients = db.getRecords('clients', user);
  
-+    // Import button visibility
-+    const importBtn = document.getElementById('btn-import-reqs');
-+    if (importBtn) {
-+      if (user.role === 'employee') importBtn.classList.add('hidden');
-+      else importBtn.classList.remove('hidden');
-+    }
-+
      tbody.innerHTML = '';
  
-     reqs.forEach(req => {
-@@ -95,23 +166,30 @@
-       if (this.filterStage && req.pipeline_stage !== this.filterStage) return;
+     deals.forEach(deal => {
+       // Filters
+       if (this.filterOwner && deal.owner_id && !deal.owner_id.toLowerCase().includes(this.filterOwner)) return;
+-      if (this.filterClient && deal.client_id && !deal.client_id.toLowerCase().includes(this.filterClient)) return;
++
++      const clientName = this.getClientName(deal.client_id, clients);
++      if (this.filterClient && clientName.toLowerCase().indexOf(this.filterClient) === -1 && (!deal.client_id || !deal.client_id.toLowerCase().includes(this.filterClient))) return;
  
+       const srv = deal.service_type || deal.service_interest || '';
+       if (this.filterService && srv !== this.filterService) return;
+@@ -66,22 +93,32 @@ class DealsManager {
+       if (this.filterPayment && deal.payment_status !== this.filterPayment) return;
+       if (this.filterDelivery && deal.completion_status !== this.filterDelivery) return;
+ 
++      const eid = this.escapeHTML(deal.id);
++      const reqRef = deal.requirement_id || deal.req_id || '';
        const tr = document.createElement('tr');
-+      const eid = this.escapeHTML(req.id);
        tr.innerHTML = `
--        <td><strong>${req.title || 'Untitled'}</strong><br><small>${req.id}</small></td>
--        <td>${req.company_name || req.client_id || '-'}</td>
--        <td>${req.service_interest || '-'}</td>
--        <td>${req.proposal_status || 'Not Started'}</td>
--        <td>${req.po_status || 'Not Required'}</td>
--        <td><span class="badge" style="background: var(--muted);">${reqSLA}</span></td>
--        <td>${req.pipeline_stage || 'Requirement Gathering'}</td>
-+        <td><strong>${this.escapeHTML(req.title)}</strong><br><small>${eid}</small></td>
-+        <td>${this.escapeHTML(req.company_name || req.client_id)}</td>
-+        <td>${this.escapeHTML(req.service_interest)}</td>
-+        <td>${this.escapeHTML(req.proposal_status || 'Not Started')}</td>
-+        <td>${this.escapeHTML(req.po_status || 'Not Required')}</td>
-+        <td><span class="badge" style="background: var(--muted);">${this.escapeHTML(reqSLA)}</span></td>
-+        <td>${this.escapeHTML(req.pipeline_stage || 'Requirement Gathering')}</td>
+-        <td><strong>${deal.project_name || deal.title || 'Untitled'}</strong><br><small>${deal.id}</small></td>
+-        <td>${deal.client_id || '-'}</td>
+-        <td>${deal.amount || '-'}</td>
+-        <td>${deal.status || 'Planning'}</td>
+-        <td>${deal.payment_status || 'Pending'}</td>
+-        <td>${deal.completion_status || 'Not Started'}</td>
++        <td><strong>${this.escapeHTML(deal.project_name || deal.title || 'Untitled')}</strong><br><small>${eid}</small>${reqRef ? `<br><small class="text-muted">Req: ${this.escapeHTML(reqRef)}</small>` : ''}</td>
++        <td>${this.escapeHTML(clientName)}</td>
++        <td>${this.escapeHTML(srv)}</td>
++        <td>${this.escapeHTML(deal.amount)}</td>
++        <td>${this.escapeHTML(deal.status || 'Planning')}</td>
++        <td>${this.escapeHTML(deal.payment_status || 'Pending')}</td>
++        <td>${this.escapeHTML(deal.completion_status || 'Not Started')}</td>
          <td>
--          <button class="btn btn-secondary" onclick="window.requirementsManager.openRequirementModal('${req.id}')">View</button>
-+          <div style="display: flex; gap: 4px; flex-wrap: wrap;">
-+            <button class="btn btn-secondary req-action" data-action="view" data-id="${eid}" style="padding: 2px 6px; font-size: 11px;">View</button>
-+            <button class="btn btn-secondary req-action" data-action="proposal" data-id="${eid}" style="padding: 2px 6px; font-size: 11px;">Proposal</button>
-+            <button class="btn btn-secondary req-action" data-action="po" data-id="${eid}" style="padding: 2px 6px; font-size: 11px;">PO</button>
-+            <button class="btn btn-secondary req-action" data-action="lost" data-id="${eid}" style="padding: 2px 6px; font-size: 11px;">Lost</button>
-+            <button class="btn btn-secondary req-action" data-action="hold" data-id="${eid}" style="padding: 2px 6px; font-size: 11px;">Hold</button>
-+          </div>
+-          <button class="btn btn-secondary" onclick="window.dealsManager.openDealModal('${deal.id}')">View</button>
++          <button class="btn btn-secondary deal-action" data-action="view" data-id="${eid}">View</button>
          </td>
        `;
        tbody.appendChild(tr);
      });
    }
  
--  openRequirementModal(reqId = null) {
-+  openRequirementModal(reqId = null, focusSection = null) {
++  getClientName(clientId, clients) {
++    if (!clientId) return '-';
++    const client = clients.find(c => c.id === clientId);
++    if (client) return client.company_name;
++    return clientId;
++  }
++
+   openDealModal(dealId = null) {
      const user = auth.getCurrentUser();
-     const modalTitle = document.getElementById('modal-req-title');
-     const form = document.getElementById('form-req');
-@@ -132,6 +210,12 @@
-         // Intake
-         el('req-title').value = req.title || '';
-         el('req-client-id').value = req.client_id || '';
-+        el('req-contact-id').value = req.contact_id || '';
-+        el('req-company').value = req.company_name || '';
-+        el('req-contact-person').value = req.contact_person || '';
-+        el('req-designation').value = req.designation || '';
-+        el('req-phone').value = req.phone || '';
-+        el('req-email').value = req.email || '';
-         el('req-service').value = req.service_interest || '';
-         el('req-tech').value = req.technology || '';
-         el('req-audience').value = req.audience || '';
-@@ -160,9 +244,19 @@
-         el('req-po-att').value = req.po_attachment || '';
-         el('req-comm-remarks').value = req.commercial_remarks || '';
- 
-+        // Attachments
-+        el('req-doc-ref').value = req.requirement_document_ref || '';
-+        el('req-email-ref').value = req.email_ref || '';
-+        el('req-prop-att-ref').value = req.proposal_attachment_ref || '';
-+
-+        // Confirmation
-+        el('req-confirm-type').value = req.confirmation_type || 'None';
-+        el('req-confirm-date').value = req.confirmation_date || '';
-+        el('req-confirm-remarks').value = req.confirmation_remarks || '';
-+
-         this.renderCandidates(reqId);
- 
--        if (req.status !== 'Converted') {
-+        if (req.status !== 'Converted' && !req.converted_deal_id) {
-           el('btn-convert-deal').style.display = 'inline-block';
-         }
-       }
-@@ -172,6 +266,13 @@
-     }
- 
-     el('modal-req').classList.remove('hidden');
-+
-+    // Focus on section if requested
-+    if (focusSection === 'proposal') {
-+      setTimeout(() => { el('req-prop-status').focus(); el('req-prop-status').scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 200);
-+    } else if (focusSection === 'po') {
-+      setTimeout(() => { el('req-po-att').focus(); el('req-po-att').scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 200);
-+    }
-   }
- 
-   saveRequirement() {
-@@ -182,6 +283,12 @@
-     const reqData = {
-       title: el('req-title').value,
-       client_id: el('req-client-id').value,
-+      contact_id: el('req-contact-id').value,
-+      company_name: el('req-company').value,
-+      contact_person: el('req-contact-person').value,
-+      designation: el('req-designation').value,
-+      phone: el('req-phone').value,
-+      email: el('req-email').value,
-       service_interest: el('req-service').value,
-       technology: el('req-tech').value,
-       audience: el('req-audience').value,
-@@ -207,7 +314,15 @@
-       po_amount: el('req-po-amt').value,
-       po_received_date: el('req-po-date').value,
-       po_attachment: el('req-po-att').value,
--      commercial_remarks: el('req-comm-remarks').value
-+      commercial_remarks: el('req-comm-remarks').value,
-+
-+      requirement_document_ref: el('req-doc-ref').value,
-+      email_ref: el('req-email-ref').value,
-+      proposal_attachment_ref: el('req-prop-att-ref').value,
-+
-+      confirmation_type: el('req-confirm-type').value,
-+      confirmation_date: el('req-confirm-date').value,
-+      confirmation_remarks: el('req-confirm-remarks').value
-     };
- 
-     let isProposalUpdated = false;
-@@ -216,6 +331,9 @@
-     if (reqId) {
-       const oldReq = db.getRecords('requirements', user).find(r => r.id === reqId);
-       if (oldReq) {
-+        if (user.role === 'employee' && oldReq.owner_id !== reqData.owner_id) {
-+          reqData.owner_id = oldReq.owner_id; // prevent employee reassignment
-+        }
-         if (oldReq.proposal_status !== reqData.proposal_status || oldReq.proposal_amount !== reqData.proposal_amount || oldReq.proposal_version !== reqData.proposal_version) isProposalUpdated = true;
-         if (oldReq.po_status !== reqData.po_status || oldReq.po_amount !== reqData.po_amount || oldReq.po_number !== reqData.po_number || oldReq.po_received_date !== reqData.po_received_date) isPOUpdated = true;
-       }
-@@ -245,8 +363,19 @@
- 
-     if (!req) return;
- 
--    if (req.po_status !== 'Received' && req.approval_status !== 'Approved') {
--      return alert('Cannot convert to Deal: Proposal Approval or PO Received is required.');
-+    // Duplicate conversion guard
-+    if (req.status === 'Converted' || req.converted_deal_id) {
-+      return alert('This requirement has already been converted to a Deal.');
-+    }
-+
-+    // Check confirmation eligibility
-+    const confirmAllowed = ['Verbal Approval', 'Email Approval', 'Internal Approval'];
-+    const canConvert = req.po_status === 'Received' ||
-+                       req.approval_status === 'Approved' ||
-+                       confirmAllowed.includes(req.confirmation_type);
-+
-+    if (!canConvert) {
-+      return alert('Cannot convert to Deal: PO Received, Proposal Approval, or explicit Confirmation is required.');
-     }
- 
-     if (!confirm('Convert this requirement to a Deal?')) return;
-@@ -310,6 +439,57 @@
-     if (window.pipelineManager) window.pipelineManager.render();
-   }
- 
-+  // SOP quick actions
-+  focusProposal() {
-+    const propStatus = document.getElementById('req-prop-status');
-+    if (propStatus) {
-+      propStatus.focus();
-+      propStatus.scrollIntoView({ behavior: 'smooth', block: 'center' });
-+    }
-+  }
-+
-+  focusPO() {
-+    const poAtt = document.getElementById('req-po-att');
-+    if (poAtt) {
-+      poAtt.focus();
-+      poAtt.scrollIntoView({ behavior: 'smooth', block: 'center' });
-+    }
-+  }
-+
-+  markLost() {
-+    const reqId = document.getElementById('req-id').value;
-+    if (!reqId) return alert('Save the requirement first.');
-+    this.markLostById(reqId);
-+  }
-+
-+  markOnHold() {
-+    const reqId = document.getElementById('req-id').value;
-+    if (!reqId) return alert('Save the requirement first.');
-+    this.markOnHoldById(reqId);
-+  }
-+
-+  markLostById(reqId) {
-+    if (!confirm('Mark this requirement as Lost?')) return;
-+    const user = auth.getCurrentUser();
-+    db.updateRecord('requirements', reqId, { status: 'Lost', pipeline_stage: 'Lost' }, user);
-+    db.logAudit('status_change', `Requirement ${reqId} marked as Lost`, user);
-+    db.logActivity('status_change', 'Requirement marked as Lost', 'requirements', reqId, user);
-+    document.getElementById('modal-req').classList.add('hidden');
-+    this.render();
-+    if (window.pipelineManager) window.pipelineManager.render();
-+  }
-+
-+  markOnHoldById(reqId) {
-+    if (!confirm('Mark this requirement as On Hold?')) return;
-+    const user = auth.getCurrentUser();
-+    db.updateRecord('requirements', reqId, { status: 'On Hold', pipeline_stage: 'Dormant' }, user);
-+    db.logAudit('status_change', `Requirement ${reqId} marked as On Hold`, user);
-+    db.logActivity('status_change', 'Requirement marked as On Hold', 'requirements', reqId, user);
-+    document.getElementById('modal-req').classList.add('hidden');
-+    this.render();
-+    if (window.pipelineManager) window.pipelineManager.render();
-+  }
-+
-   renderCandidates(reqId) {
-     const user = auth.getCurrentUser();
-     const cands = db.getRecords('sourcingCandidates', user).filter(c => c.requirement_id === reqId);
-@@ -321,26 +501,73 @@
-     cands.forEach(cand => {
-       // Show saved SLA if it exists, otherwise calculate live
-       const sla = cand.sla_status || this.calculateSLA(req.created_at, cand.shared_date || null);
-+      const eid = this.escapeHTML(cand.id);
- 
-       const tr = document.createElement('tr');
-       tr.innerHTML = `
--        <td>${cand.candidate_name || '-'}</td>
--        <td>${cand.candidate_type || '-'}</td>
--        <td>${cand.skill_match || '-'}</td>
--        <td>${cand.commercial_rate || '-'}</td>
--        <td>${cand.evaluation_status || 'Pending'}</td>
--        <td>${cand.profile_shared || 'No'}</td>
--        <td>${cand.client_feedback || 'Pending'}</td>
--        <td><span class="badge" style="background: var(--muted);">${sla}</span></td>
-+        <td>${this.escapeHTML(cand.candidate_name)}</td>
-+        <td>${this.escapeHTML(cand.candidate_type)}</td>
-+        <td>${this.escapeHTML(cand.skill_match)}</td>
-+        <td>${this.escapeHTML(cand.commercial_rate)}</td>
-+        <td>${this.escapeHTML(cand.evaluation_status || 'Pending')}</td>
-+        <td>${this.escapeHTML(cand.profile_shared || 'No')}</td>
-+        <td>${this.escapeHTML(cand.client_feedback || 'Pending')}</td>
-+        <td><span class="badge" style="background: var(--muted);">${this.escapeHTML(sla)}</span></td>
-         <td>
--          <button class="btn btn-secondary" style="padding: 2px 6px; font-size: 12px;" type="button" onclick="window.requirementsManager.openCandidateModal('${cand.id}')">Edit</button>
-+          <div style="display: flex; gap: 4px; flex-wrap: wrap;">
-+            <button class="btn btn-secondary cand-action" data-action="edit" data-id="${eid}" type="button" style="padding: 2px 6px; font-size: 11px;">Edit</button>
-+            <button class="btn btn-secondary cand-action" data-action="shortlist" data-id="${eid}" type="button" style="padding: 2px 6px; font-size: 11px;">Shortlist</button>
-+            <button class="btn btn-secondary cand-action" data-action="share" data-id="${eid}" type="button" style="padding: 2px 6px; font-size: 11px;">Share</button>
-+            <button class="btn btn-secondary cand-action" data-action="select" data-id="${eid}" type="button" style="padding: 2px 6px; font-size: 11px;">Select</button>
-+          </div>
-         </td>
-       `;
-       tbody.appendChild(tr);
-     });
-   }
- 
--  openCandidateModal(candId = null) {
-+  quickCandidateAction(candId, newStatus) {
-+    const user = auth.getCurrentUser();
-+    const reqId = document.getElementById('req-id').value;
-+    const cand = db.getRecords('sourcingCandidates', user).find(c => c.id === candId);
-+    if (!cand) return;
-+
-+    const oldStatus = cand.evaluation_status;
-+    db.updateRecord('sourcingCandidates', candId, { evaluation_status: newStatus }, user);
-+
-+    if (newStatus === 'Selected' && oldStatus !== 'Selected') {
-+      db.logAudit('candidate_selected', `Candidate ${cand.candidate_name} selected for req ${reqId}`, user);
-+      db.logActivity('candidate_selected', `Candidate selected`, 'requirements', reqId, user);
-+    } else if (newStatus === 'Shortlisted' && oldStatus !== 'Shortlisted') {
-+      db.logAudit('candidate_shortlisted', `Candidate ${cand.candidate_name} shortlisted for req ${reqId}`, user);
-+      db.logActivity('candidate_shortlisted', `Candidate shortlisted`, 'requirements', reqId, user);
-+    }
-+
-+    if (reqId) this.renderCandidates(reqId);
-+  }
-+
-+  shareCandidateProfile(candId) {
-+    const user = auth.getCurrentUser();
-+    const reqId = document.getElementById('req-id').value;
-+    const cand = db.getRecords('sourcingCandidates', user).find(c => c.id === candId);
-+    if (!cand) return;
-+
-+    const updates = { profile_shared: 'Yes' };
-+    if (!cand.shared_date) {
-+      updates.shared_date = new Date().toISOString().split('T')[0];
-+    }
-+
-+    db.updateRecord('sourcingCandidates', candId, updates, user);
-+
-+    if (cand.profile_shared !== 'Yes') {
-+      db.logAudit('profile_shared', `Profile ${cand.candidate_name} shared for req ${reqId}`, user);
-+      db.logActivity('profile_shared', `Candidate profile shared`, 'requirements', reqId, user);
-+    }
-+
-+    if (reqId) this.renderCandidates(reqId);
-+  }
-+
-+  openCandidateModal(candId = null, defaultType = null) {
-     const reqId = document.getElementById('req-id').value;
-     if (!reqId) return alert('Please save the requirement first before adding candidates.');
- 
-@@ -386,6 +613,9 @@
+     const modalTitle = document.getElementById('modal-deal-title');
+@@ -168,7 +205,7 @@ class DealsManager {
+         el('deal-repeat').value = deal.repeat_business_status || '';
        }
      } else {
-       modalTitle.textContent = 'Add Candidate';
-+      if (defaultType) {
-+        el('cand-type').value = defaultType;
+-      modalTitle.textContent = 'Create Deal';
++      modalTitle.textContent = 'Add Deal';
+       el('deal-owner').value = user.id;
+     }
+ 
+@@ -247,6 +284,10 @@ class DealsManager {
+     let savedDealId = dealId;
+     if (dealId) {
+       oldDeal = db.getRecords('deals', user).find(d => d.id === dealId);
++      if (oldDeal && user.role === 'employee' && oldDeal.owner_id !== dealData.owner_id) {
++        dealData.owner_id = oldDeal.owner_id; // Preserve old owner
++      }
++
+       // Pipeline synchronization
+       if (dealData.status === 'Cancelled') {
+         dealData.pipeline_stage = 'Lost';
+@@ -314,6 +355,16 @@ class DealsManager {
+         db.logAudit('vendor_assigned', `Vendor ${dealData.selected_vendor_id} assigned to deal ${savedDealId}`, user);
+         db.logActivity('trainer coordination', `Vendor assignment set`, 'deals', savedDealId, user);
+       }
++
++      if (dealData.requirement_id) {
++        db.updateRecord('requirements', dealData.requirement_id, {
++          status: 'Converted',
++          pipeline_stage: 'Converted',
++          converted_deal_id: savedDealId
++        }, user);
++        db.logAudit('convert_to_deal', `Requirement ${dealData.requirement_id} converted to deal ${savedDealId}`, user);
++        db.logActivity('convert_to_deal', `Requirement converted to deal`, 'requirements', dealData.requirement_id, user);
 +      }
      }
  
-     el('modal-candidate').classList.remove('hidden');
-diff --git a/js/schema.js b/js/schema.js
-index 2ff81e9..4850416 100644
---- a/js/schema.js
-+++ b/js/schema.js
-@@ -33,12 +33,15 @@ window.crmSchema = {
-   requirements: {
-     fields: [
-       'title', 'description', 'client_id', 'contact_id', 'lead_id', 'company_name', 'contact_person',
-+      'designation', 'phone', 'email',
-       'budget', 'priority', 'status', 'pipeline_stage', 'converted_deal_id',
-       'service_interest', 'technology', 'audience', 'duration', 'mode', 'location',
-       'preferred_dates', 'trainer_type', 'lab_needs', 'recording_needs',
-       'proposal_status', 'po_status', 'proposal_number', 'proposal_date',
-       'proposal_amount', 'proposal_version', 'approval_status', 'po_number',
--      'po_amount', 'po_received_date', 'po_attachment', 'commercial_remarks', 'owner_id'
-+      'po_amount', 'po_received_date', 'po_attachment', 'commercial_remarks', 'owner_id',
-+      'requirement_document_ref', 'email_ref', 'proposal_attachment_ref',
-+      'confirmation_type', 'confirmation_date', 'confirmation_remarks'
-     ],
-     duplicateKeys: []
-   },
+     if (window.pipelineManager) window.pipelineManager.render();
+@@ -359,6 +410,89 @@ class DealsManager {
+       alert('Vendor not found.');
+     }
+   }
++
++  convertFromRequirement() {
++    const user = auth.getCurrentUser();
++    const reqs = db.getRecords('requirements', user);
++    const deals = db.getRecords('deals', user);
++    const convertedReqIds = deals.map(d => d.req_id || d.requirement_id).filter(id => !!id);
++
++    const eligibleReqs = reqs.filter(r => {
++      if (r.status === 'Converted' || r.converted_deal_id || convertedReqIds.includes(r.id)) return false;
++      const confirmAllowed = ['Verbal Approval', 'Email Approval', 'Internal Approval'];
++      return r.po_status === 'Received' || r.approval_status === 'Approved' || confirmAllowed.includes(r.confirmation_type);
++    });
++
++    if (eligibleReqs.length === 0) {
++      return alert('No eligible requirements found. Must have PO Received, Proposal Approved, or explicit Confirmation, and not already be converted.');
++    }
++
++    const optionsStr = eligibleReqs.map(r => `${r.id}: ${r.title}`).join('\\n');
++    const input = prompt(`Enter Requirement ID to convert:\\n\\n${optionsStr}`);
++    if (!input) return;
++
++    const req = eligibleReqs.find(r => r.id === input.trim());
++    if (!req) return alert('Invalid Requirement ID');
++
++    this.openDealModal();
++    const el = (id) => document.getElementById(id);
++
++    el('deal-req-id').value = req.id;
++    el('deal-lead-id').value = req.lead_id || '';
++    el('deal-project').value = req.title || '';
++    el('deal-client').value = req.client_id || '';
++    el('deal-contact').value = req.contact_id || '';
++    el('deal-service').value = req.service_interest || '';
++    el('deal-amount').value = req.po_amount || req.proposal_amount || req.budget || '';
++    el('deal-owner').value = req.owner_id || user.id;
++
++    // Try to auto-pull selected candidate
++    const cands = db.getRecords('sourcingCandidates', user).filter(c => c.requirement_id === req.id && c.evaluation_status === 'Selected');
++    const selectedCand = cands.length > 0 ? cands[0] : null;
++
++    if (selectedCand) {
++      if (selectedCand.candidate_type === 'Trainer') {
++        el('deal-trainer-id').value = selectedCand.linked_trainer_id || '';
++        el('deal-trainer-name').value = selectedCand.candidate_name || '';
++      } else if (selectedCand.candidate_type === 'Vendor') {
++        el('deal-vendor-id').value = selectedCand.linked_vendor_id || '';
++        el('deal-vendor-name').value = selectedCand.candidate_name || '';
++      }
++      el('deal-trainer-rate').value = selectedCand.commercial_rate || '';
++    }
++
++    alert('Deal form prepopulated from Requirement. Please verify and save.');
++  }
++
++  focusField(fieldId) {
++    const field = document.getElementById(fieldId);
++    if (field) {
++      field.focus();
++      field.scrollIntoView({ behavior: 'smooth', block: 'center' });
++    }
++  }
++
++  markCompleted() {
++    const dealId = document.getElementById('deal-id').value;
++    if (!dealId) return alert('Please save the deal first.');
++
++    const el = (id) => document.getElementById(id);
++    el('deal-status').value = 'Completed';
++    el('deal-delivery-status').value = 'Completed';
++    this.saveDeal();
++    db.logActivity('status_change', 'Deal marked as Completed', 'deals', dealId, auth.getCurrentUser());
++  }
++
++  closeDeal() {
++    const dealId = document.getElementById('deal-id').value;
++    if (!dealId) return alert('Please save the deal first.');
++
++    const el = (id) => document.getElementById(id);
++    el('deal-status').value = 'Closed';
++    el('deal-closure').value = 'Closed';
++    this.saveDeal();
++    db.logActivity('status_change', 'Deal marked as Closed', 'deals', dealId, auth.getCurrentUser());
++  }
+ }
+ 
+ document.addEventListener('DOMContentLoaded', () => {
 ```
 
 ## Tests Run
 ```text
-git diff --check; node --check js/requirements.js; node --check js/db.js; node --check js/app.js; node --check js/schema.js; node --check js/pipeline.js; node --check js/deals.js; node --check js/leads.js; node --check js/dashboard.js; node --check js/database.js; node --check js/reports.js; node --check js/settings.js; node --check js/import.js
+git diff --check; node --check js/deals.js; node --check js/app.js; node --check js/schema.js; node --check js/db.js; node --check js/requirements.js; node --check js/pipeline.js; node --check js/leads.js; node --check js/dashboard.js; node --check js/database.js; node --check js/reports.js; node --check js/settings.js; node --check js/import.js
 ```
 
 ## Risks / Pending Checks

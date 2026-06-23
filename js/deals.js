@@ -13,6 +13,17 @@ class DealsManager {
     this.render();
   }
 
+  escapeHTML(str) {
+    if (str === null || str === undefined || str === '') return '-';
+    if (typeof str === 'number') return String(str);
+    return String(str)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }
+
   bindEvents() {
     const el = (id) => document.getElementById(id);
     if (!el('deal-filter-owner')) return;
@@ -34,6 +45,19 @@ class DealsManager {
       e.preventDefault();
       this.saveDeal();
     });
+
+    const tbody = el('deals-table-body');
+    if (tbody) {
+      tbody.addEventListener('click', (e) => {
+        const btn = e.target.closest('.deal-action');
+        if (!btn) return;
+        const action = btn.getAttribute('data-action');
+        const dealId = btn.getAttribute('data-id');
+        if (action === 'view') {
+          this.openDealModal(dealId);
+        }
+      });
+    }
   }
 
   render() {
@@ -42,13 +66,16 @@ class DealsManager {
 
     const user = auth.getCurrentUser();
     let deals = db.getRecords('deals', user);
+    let clients = db.getRecords('clients', user);
 
     tbody.innerHTML = '';
 
     deals.forEach(deal => {
       // Filters
       if (this.filterOwner && deal.owner_id && !deal.owner_id.toLowerCase().includes(this.filterOwner)) return;
-      if (this.filterClient && deal.client_id && !deal.client_id.toLowerCase().includes(this.filterClient)) return;
+
+      const clientName = this.getClientName(deal.client_id, clients);
+      if (this.filterClient && clientName.toLowerCase().indexOf(this.filterClient) === -1 && (!deal.client_id || !deal.client_id.toLowerCase().includes(this.filterClient))) return;
 
       const srv = deal.service_type || deal.service_interest || '';
       if (this.filterService && srv !== this.filterService) return;
@@ -66,20 +93,30 @@ class DealsManager {
       if (this.filterPayment && deal.payment_status !== this.filterPayment) return;
       if (this.filterDelivery && deal.completion_status !== this.filterDelivery) return;
 
+      const eid = this.escapeHTML(deal.id);
+      const reqRef = deal.requirement_id || deal.req_id || '';
       const tr = document.createElement('tr');
       tr.innerHTML = `
-        <td><strong>${deal.project_name || deal.title || 'Untitled'}</strong><br><small>${deal.id}</small></td>
-        <td>${deal.client_id || '-'}</td>
-        <td>${deal.amount || '-'}</td>
-        <td>${deal.status || 'Planning'}</td>
-        <td>${deal.payment_status || 'Pending'}</td>
-        <td>${deal.completion_status || 'Not Started'}</td>
+        <td><strong>${this.escapeHTML(deal.project_name || deal.title || 'Untitled')}</strong><br><small>${eid}</small>${reqRef ? `<br><small class="text-muted">Req: ${this.escapeHTML(reqRef)}</small>` : ''}</td>
+        <td>${this.escapeHTML(clientName)}</td>
+        <td>${this.escapeHTML(srv)}</td>
+        <td>${this.escapeHTML(deal.amount)}</td>
+        <td>${this.escapeHTML(deal.status || 'Planning')}</td>
+        <td>${this.escapeHTML(deal.payment_status || 'Pending')}</td>
+        <td>${this.escapeHTML(deal.completion_status || 'Not Started')}</td>
         <td>
-          <button class="btn btn-secondary" onclick="window.dealsManager.openDealModal('${deal.id}')">View</button>
+          <button class="btn btn-secondary deal-action" data-action="view" data-id="${eid}">View</button>
         </td>
       `;
       tbody.appendChild(tr);
     });
+  }
+
+  getClientName(clientId, clients) {
+    if (!clientId) return '-';
+    const client = clients.find(c => c.id === clientId);
+    if (client) return client.company_name;
+    return clientId;
   }
 
   openDealModal(dealId = null) {
@@ -168,7 +205,7 @@ class DealsManager {
         el('deal-repeat').value = deal.repeat_business_status || '';
       }
     } else {
-      modalTitle.textContent = 'Create Deal';
+      modalTitle.textContent = 'Add Deal';
       el('deal-owner').value = user.id;
     }
 
@@ -247,6 +284,10 @@ class DealsManager {
     let savedDealId = dealId;
     if (dealId) {
       oldDeal = db.getRecords('deals', user).find(d => d.id === dealId);
+      if (oldDeal && user.role === 'employee' && oldDeal.owner_id !== dealData.owner_id) {
+        dealData.owner_id = oldDeal.owner_id; // Preserve old owner
+      }
+
       // Pipeline synchronization
       if (dealData.status === 'Cancelled') {
         dealData.pipeline_stage = 'Lost';
@@ -314,6 +355,16 @@ class DealsManager {
         db.logAudit('vendor_assigned', `Vendor ${dealData.selected_vendor_id} assigned to deal ${savedDealId}`, user);
         db.logActivity('trainer coordination', `Vendor assignment set`, 'deals', savedDealId, user);
       }
+
+      if (dealData.requirement_id) {
+        db.updateRecord('requirements', dealData.requirement_id, {
+          status: 'Converted',
+          pipeline_stage: 'Converted',
+          converted_deal_id: savedDealId
+        }, user);
+        db.logAudit('convert_to_deal', `Requirement ${dealData.requirement_id} converted to deal ${savedDealId}`, user);
+        db.logActivity('convert_to_deal', `Requirement converted to deal`, 'requirements', dealData.requirement_id, user);
+      }
     }
 
     if (window.pipelineManager) window.pipelineManager.render();
@@ -358,6 +409,89 @@ class DealsManager {
     } else {
       alert('Vendor not found.');
     }
+  }
+
+  convertFromRequirement() {
+    const user = auth.getCurrentUser();
+    const reqs = db.getRecords('requirements', user);
+    const deals = db.getRecords('deals', user);
+    const convertedReqIds = deals.map(d => d.req_id || d.requirement_id).filter(id => !!id);
+
+    const eligibleReqs = reqs.filter(r => {
+      if (r.status === 'Converted' || r.converted_deal_id || convertedReqIds.includes(r.id)) return false;
+      const confirmAllowed = ['Verbal Approval', 'Email Approval', 'Internal Approval'];
+      return r.po_status === 'Received' || r.approval_status === 'Approved' || confirmAllowed.includes(r.confirmation_type);
+    });
+
+    if (eligibleReqs.length === 0) {
+      return alert('No eligible requirements found. Must have PO Received, Proposal Approved, or explicit Confirmation, and not already be converted.');
+    }
+
+    const optionsStr = eligibleReqs.map(r => `${r.id}: ${r.title}`).join('\\n');
+    const input = prompt(`Enter Requirement ID to convert:\\n\\n${optionsStr}`);
+    if (!input) return;
+
+    const req = eligibleReqs.find(r => r.id === input.trim());
+    if (!req) return alert('Invalid Requirement ID');
+
+    this.openDealModal();
+    const el = (id) => document.getElementById(id);
+
+    el('deal-req-id').value = req.id;
+    el('deal-lead-id').value = req.lead_id || '';
+    el('deal-project').value = req.title || '';
+    el('deal-client').value = req.client_id || '';
+    el('deal-contact').value = req.contact_id || '';
+    el('deal-service').value = req.service_interest || '';
+    el('deal-amount').value = req.po_amount || req.proposal_amount || req.budget || '';
+    el('deal-owner').value = req.owner_id || user.id;
+
+    // Try to auto-pull selected candidate
+    const cands = db.getRecords('sourcingCandidates', user).filter(c => c.requirement_id === req.id && c.evaluation_status === 'Selected');
+    const selectedCand = cands.length > 0 ? cands[0] : null;
+
+    if (selectedCand) {
+      if (selectedCand.candidate_type === 'Trainer') {
+        el('deal-trainer-id').value = selectedCand.linked_trainer_id || '';
+        el('deal-trainer-name').value = selectedCand.candidate_name || '';
+      } else if (selectedCand.candidate_type === 'Vendor') {
+        el('deal-vendor-id').value = selectedCand.linked_vendor_id || '';
+        el('deal-vendor-name').value = selectedCand.candidate_name || '';
+      }
+      el('deal-trainer-rate').value = selectedCand.commercial_rate || '';
+    }
+
+    alert('Deal form prepopulated from Requirement. Please verify and save.');
+  }
+
+  focusField(fieldId) {
+    const field = document.getElementById(fieldId);
+    if (field) {
+      field.focus();
+      field.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }
+
+  markCompleted() {
+    const dealId = document.getElementById('deal-id').value;
+    if (!dealId) return alert('Please save the deal first.');
+
+    const el = (id) => document.getElementById(id);
+    el('deal-status').value = 'Completed';
+    el('deal-delivery-status').value = 'Completed';
+    this.saveDeal();
+    db.logActivity('status_change', 'Deal marked as Completed', 'deals', dealId, auth.getCurrentUser());
+  }
+
+  closeDeal() {
+    const dealId = document.getElementById('deal-id').value;
+    if (!dealId) return alert('Please save the deal first.');
+
+    const el = (id) => document.getElementById(id);
+    el('deal-status').value = 'Closed';
+    el('deal-closure').value = 'Closed';
+    this.saveDeal();
+    db.logActivity('status_change', 'Deal marked as Closed', 'deals', dealId, auth.getCurrentUser());
   }
 }
 
