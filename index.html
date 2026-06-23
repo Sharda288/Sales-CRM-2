@@ -5,6 +5,25 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Sales CRM</title>
   <link rel="stylesheet" href="css/style.css">
+  <style>
+    @media print {
+      body * {
+        visibility: hidden;
+      }
+      #tab-reports, #tab-reports * {
+        visibility: visible;
+      }
+      #tab-reports {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+      }
+      .sidebar, .btn, .filters {
+        display: none !important;
+      }
+    }
+  </style>
 </head>
 <body>
 
@@ -440,24 +459,43 @@
               <h3>Reports / MIS</h3>
               <p>Analytics based on your role access.</p>
             </div>
-            <button class="btn btn-primary" onclick="window.reportsManager.exportCSV()">Export to CSV</button>
+            <div style="display: flex; gap: 8px;">
+              <button class="btn btn-secondary" onclick="window.reportsManager.shareMIS()">Share MIS</button>
+              <button class="btn btn-secondary" onclick="window.reportsManager.saveView()">Save Report View</button>
+              <button class="btn btn-primary" onclick="window.reportsManager.downloadPDF()">Download PDF</button>
+              <button class="btn btn-primary" onclick="window.reportsManager.exportExcel()">Download Excel</button>
+              <button class="btn btn-primary" onclick="window.reportsManager.exportReport()">Export Report</button>
+            </div>
           </div>
 
           <div class="filters" style="display: flex; gap: 10px; margin-top: 15px; flex-wrap: wrap;">
-            <select id="report-type" class="form-control" style="flex: 1; min-width: 200px;">
-              <option value="sales">Sales MIS</option>
+            <select id="report-type" class="form-control" style="flex: 1; min-width: 180px;">
               <option value="personal">Personal MIS</option>
-              <option value="deals">Deal MIS</option>
-              <option value="revenue">Revenue Summary</option>
-              <option value="pending">Pending Payments</option>
-              <option value="datewise">Date-wise Reports</option>
-              <option value="owner">Owner-wise Performance</option>
-              <option value="service">Service-line Performance</option>
-              <option value="followup">Follow-up & Overdue Tasks</option>
+              <option value="sales">Sales Report</option>
+              <option value="deals">Deal Report</option>
+              <option value="revenue">Revenue Report</option>
+              <option value="payment">Payment Report</option>
+              <option value="sourcing">Sourcing Report</option>
+              <option value="client">Client Report</option>
+              <option value="datewise">Date-wise Report</option>
+              <option value="money">Money Report</option>
             </select>
+
             <input type="date" id="report-start-date" class="form-control" placeholder="Start Date">
             <input type="date" id="report-end-date" class="form-control" placeholder="End Date">
-            <button class="btn btn-secondary" onclick="window.reportsManager.render()">Generate</button>
+
+            <select id="report-owner" class="form-control"><option value="">All Owners</option></select>
+            <select id="report-service" class="form-control"><option value="">All Services</option></select>
+            <select id="report-client" class="form-control"><option value="">All Clients</option></select>
+            <select id="report-trainer" class="form-control"><option value="">All Trainers</option></select>
+            <select id="report-vendor" class="form-control"><option value="">All Vendors</option></select>
+
+            <select id="report-status" class="form-control"><option value="">All Statuses</option></select>
+            <select id="report-city" class="form-control"><option value="">All Cities</option></select>
+            <select id="report-payment" class="form-control"><option value="">All Payment Statuses</option></select>
+            <select id="report-stage" class="form-control"><option value="">All Deal Stages</option></select>
+
+            <button class="btn btn-secondary" onclick="window.reportsManager.render()">Filter Report</button>
           </div>
         </div>
 
@@ -1092,6 +1130,19 @@
           <button type="submit" class="btn btn-primary" style="width: 100%;">Save Record</button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- Drill Down Modal -->
+  <div id="modal-report-drilldown" class="modal-overlay hidden">
+    <div class="modal" style="max-width: 600px;">
+      <div class="modal-header">
+        <h3>Record Drill-down</h3>
+        <button class="btn btn-secondary" onclick="document.getElementById('modal-report-drilldown').classList.add('hidden')">Close</button>
+      </div>
+      <div id="drilldown-content" style="max-height: 400px; overflow-y: auto; padding-right: 10px;">
+        <!-- Filled by reports.js -->
+      </div>
     </div>
   </div>
 
