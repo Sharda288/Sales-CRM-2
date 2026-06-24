@@ -7,9 +7,11 @@ document.addEventListener('DOMContentLoaded', () => {
   const navItems = document.querySelectorAll('.nav-item');
   const tabPanes = document.querySelectorAll('.tab-pane');
   const pageTitle = document.getElementById('page-title');
+  const pageSubtitle = document.getElementById('page-subtitle');
   const addRecordBtn = document.getElementById('add-record-btn');
   const auditLogsSection = document.getElementById('audit-logs-section');
   const auditLogsContainer = document.getElementById('audit-logs-container');
+  const logsTableContainer = document.getElementById('logs-table-container');
 
   // Import UI Elements
   const importFile = document.getElementById('import-file');
@@ -18,6 +20,66 @@ document.addEventListener('DOMContentLoaded', () => {
   const importPreviewSection = document.getElementById('import-preview-section');
   const importPreviewResults = document.getElementById('import-preview-results');
   const commitImportBtn = document.getElementById('commit-import-btn');
+
+  // Settings <-> Logs Toggles & Filters
+  const btnToggleSettings = document.getElementById('settings-toggle-settings');
+  const btnToggleLogs = document.getElementById('settings-toggle-logs');
+  const settingsMainView = document.getElementById('settings-main-view');
+  const settingsLogsView = document.getElementById('settings-logs-view');
+  const filterLogDept = document.getElementById('filter-log-dept');
+  const filterLogStage = document.getElementById('filter-log-stage');
+  const filterLogStatus = document.getElementById('filter-log-status');
+  const filterLogAction = document.getElementById('filter-log-action');
+  const filterLogUser = document.getElementById('filter-log-user');
+  const filterLogStartDate = document.getElementById('filter-log-start-date');
+  const filterLogEndDate = document.getElementById('filter-log-end-date');
+  const btnResetLogFilters = document.getElementById('btn-reset-log-filters');
+
+  // Helper to update Settings/Logs page title and subtitle
+  function updateSettingsView(view) {
+    if (view === 'logs') {
+      if (pageTitle) pageTitle.textContent = 'Audit Logs';
+      if (pageSubtitle) pageSubtitle.textContent = 'Review system activity and user actions within the CRM.';
+      if (btnToggleLogs) btnToggleLogs.classList.add('hidden');
+      if (btnToggleSettings) btnToggleSettings.classList.remove('hidden');
+      if (settingsMainView) settingsMainView.classList.add('hidden');
+      if (settingsLogsView) settingsLogsView.classList.remove('hidden');
+      renderAudits();
+    } else {
+      if (pageTitle) pageTitle.textContent = 'Settings';
+      if (pageSubtitle) pageSubtitle.textContent = 'Manage CRM configuration, import tools, and user settings.';
+      if (btnToggleLogs) btnToggleLogs.classList.remove('hidden');
+      if (btnToggleSettings) btnToggleSettings.classList.add('hidden');
+      if (settingsMainView) settingsMainView.classList.remove('hidden');
+      if (settingsLogsView) settingsLogsView.classList.add('hidden');
+    }
+  }
+
+  // Toggle Views
+  if (btnToggleSettings) {
+    btnToggleSettings.addEventListener('click', () => {
+      updateSettingsView('settings');
+    });
+  }
+  if (btnToggleLogs) {
+    btnToggleLogs.addEventListener('click', () => {
+      updateSettingsView('logs');
+    });
+  }
+
+  // Filter Listeners
+  const logFilters = [filterLogDept, filterLogStage, filterLogStatus, filterLogAction, filterLogUser, filterLogStartDate, filterLogEndDate];
+  logFilters.forEach(f => {
+    if (f) f.addEventListener('input', renderAudits);
+    if (f) f.addEventListener('change', renderAudits);
+  });
+
+  if (btnResetLogFilters) {
+    btnResetLogFilters.addEventListener('click', () => {
+      logFilters.forEach(f => { if (f) f.value = ''; });
+      renderAudits();
+    });
+  }
 
   function init() {
     const user = auth.getCurrentUser();
@@ -32,7 +94,14 @@ document.addEventListener('DOMContentLoaded', () => {
       if (dashboardNav) dashboardNav.classList.add('active');
       tabPanes.forEach(pane => pane.classList.remove('active'));
       document.getElementById('tab-dashboard').classList.add('active');
-      pageTitle.textContent = 'Dashboard';
+      const pageTitleEl = document.getElementById('page-title');
+      if (pageTitleEl) {
+        pageTitleEl.textContent = 'Dashboard';
+      }
+      const pageSubtitleEl = document.getElementById('page-subtitle');
+      if (pageSubtitleEl) {
+        pageSubtitleEl.textContent = '';
+      }
 
       applyRoleRestrictions(user);
       renderDashboard();
@@ -50,16 +119,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function applyRoleRestrictions(user) {
     const settingsTabNav = document.querySelector('[data-tab="settings"]');
+    const btnToggleLogsEl = document.getElementById('settings-toggle-logs');
 
-    settingsTabNav.classList.remove('hidden');
-    auditLogsSection.classList.add('hidden');
+    if (settingsTabNav) settingsTabNav.classList.remove('hidden');
+    if (auditLogsSection) auditLogsSection.classList.add('hidden');
+    if (btnToggleLogsEl) btnToggleLogsEl.classList.add('hidden');
 
     if (user.role === 'employee') {
-      settingsTabNav.classList.add('hidden');
+      if (settingsTabNav) settingsTabNav.classList.add('hidden');
     }
 
     if (user.role === 'manager' || user.role === 'team_lead') {
-      auditLogsSection.classList.remove('hidden');
+      if (btnToggleLogsEl) btnToggleLogsEl.classList.remove('hidden');
     }
   }
 
@@ -92,7 +163,14 @@ document.addEventListener('DOMContentLoaded', () => {
       tabPanes.forEach(pane => pane.classList.remove('active'));
       document.getElementById(`tab-${tabName}`).classList.add('active');
 
-      pageTitle.textContent = item.textContent;
+      const pageTitleEl = document.getElementById('page-title');
+      const pageSubtitleEl = document.getElementById('page-subtitle');
+      if (pageTitleEl) {
+        pageTitleEl.textContent = item.textContent;
+      }
+      if (pageSubtitleEl) {
+        pageSubtitleEl.textContent = '';
+      }
 
       if (tabName === 'dashboard' && window.dashboardManager) {
         window.dashboardManager.render();
@@ -115,8 +193,11 @@ document.addEventListener('DOMContentLoaded', () => {
       if (tabName === 'reports' && window.reportsManager) {
         window.reportsManager.render();
       }
-      if (tabName === 'settings' && window.settingsManager) {
-        window.settingsManager.render();
+      if (tabName === 'settings') {
+        updateSettingsView('settings');
+        if (window.settingsManager) {
+          window.settingsManager.render();
+        }
       }
     });
   });
@@ -160,29 +241,104 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
 
+  function getEntityFromLog(log) {
+    const text = (log.details || '').toLowerCase();
+    if (text.includes('lead')) return 'Lead';
+    if (text.includes('client')) return 'Client';
+    if (text.includes('requirement') || text.includes('req')) return 'Requirement';
+    if (text.includes('deal')) return 'Deal';
+    if (text.includes('trainer')) return 'Trainer';
+    if (text.includes('vendor')) return 'Vendor';
+    if (text.includes('user')) return 'User';
+    if (text.includes('settings')) return 'Settings';
+    if (text.includes('import')) return 'Import';
+    if (text.includes('export')) return 'Export';
+    if (text.includes('login') || text.includes('logout')) return 'Authentication';
+    return log.action || 'System';
+  }
+
   function renderAudits() {
     const user = auth.getCurrentUser();
-    const audits = db.getAudits(user);
+    let audits = db.getAudits(user);
+    const targetEl = logsTableContainer || auditLogsContainer;
+    if (!targetEl) return;
+
     if (!audits || audits.length === 0) {
-      auditLogsContainer.innerHTML = '<p>No audit logs.</p>';
+      targetEl.innerHTML = '<p>No audit logs.</p>';
       return;
     }
 
-    const recentAudits = audits.slice(-10).reverse();
-    let html = '<table class="data-table"><thead><tr><th>Time</th><th>User</th><th>Action</th><th>Details</th></tr></thead><tbody>';
+    // Defensive Filtering
+    const deptVal = filterLogDept ? filterLogDept.value.toLowerCase() : '';
+    const stageVal = filterLogStage ? filterLogStage.value.toLowerCase() : '';
+    const statusVal = filterLogStatus ? filterLogStatus.value.toLowerCase() : '';
+    const actionVal = filterLogAction ? filterLogAction.value.toLowerCase() : '';
+    const userVal = filterLogUser ? filterLogUser.value.toLowerCase() : '';
+    const startDateVal = filterLogStartDate ? filterLogStartDate.value : '';
+    const endDateVal = filterLogEndDate ? filterLogEndDate.value : '';
 
-    recentAudits.forEach(log => {
+    if (deptVal || stageVal || statusVal || actionVal || userVal || startDateVal || endDateVal) {
+      audits = audits.filter(log => {
+        const logDept = (log.department || log.details || '').toLowerCase();
+        const logStage = (log.pipeline_stage || log.stage || log.details || '').toLowerCase();
+        const logStatus = (log.lead_status || log.status || log.details || '').toLowerCase();
+        const logAction = (log.action || log.action_type || '').toLowerCase();
+        const logUser = ((log.user_id || '') + ' ' + (log.user_role || '')).toLowerCase();
+
+        let match = true;
+        if (deptVal && !logDept.includes(deptVal)) match = false;
+        if (stageVal && !logStage.includes(stageVal)) match = false;
+        if (statusVal && !logStatus.includes(statusVal)) match = false;
+        if (actionVal && !logAction.includes(actionVal)) match = false;
+        if (userVal && !logUser.includes(userVal)) match = false;
+
+        if (startDateVal || endDateVal) {
+          const logDate = new Date(log.timestamp);
+          if (startDateVal) {
+            const startDate = new Date(startDateVal + 'T00:00:00');
+            if (logDate < startDate) match = false;
+          }
+          if (endDateVal) {
+            const endDate = new Date(endDateVal + 'T23:59:59');
+            if (logDate > endDate) match = false;
+          }
+        }
+
+        return match;
+      });
+    }
+
+    if (audits.length === 0) {
+      targetEl.innerHTML = '<p>No matching audit logs found.</p>';
+      return;
+    }
+
+    audits.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+    let html = '<table class="data-table"><thead><tr><th>Date</th><th>Time</th><th>User</th><th>Role</th><th>Team</th><th>Action</th><th>Entity</th><th>Details</th></tr></thead><tbody>';
+
+    audits.forEach(log => {
+      const dt = new Date(log.timestamp);
+      const dateStr = dt.toLocaleDateString();
+      const timeStr = dt.toLocaleTimeString();
+      const teamStr = log.team_id || '-';
+      const actionText = log.action || log.action_type || 'unknown';
+      const entityText = getEntityFromLog(log);
       html += `
         <tr>
-          <td>${new Date(log.timestamp).toLocaleTimeString()}</td>
-          <td>${log.user_id} (${log.user_role})</td>
-          <td><span class="badge" style="background-color: var(--surface-dark-elevated); color: var(--on-dark);">${log.action}</span></td>
-          <td>${log.details}</td>
+          <td>${dateStr}</td>
+          <td>${timeStr}</td>
+          <td>${log.user_id || 'Unknown'}</td>
+          <td>${log.user_role || 'Unknown'}</td>
+          <td>${teamStr}</td>
+          <td><span class="badge" style="background-color: var(--surface-dark-elevated); color: var(--on-dark);">${actionText}</span></td>
+          <td>${entityText}</td>
+          <td>${log.details || '-'}</td>
         </tr>
       `;
     });
     html += '</tbody></table>';
-    auditLogsContainer.innerHTML = html;
+    targetEl.innerHTML = html;
   }
 
   // Import Logic

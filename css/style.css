@@ -143,15 +143,37 @@ a:hover {
   flex-grow: 1;
   background-color: var(--canvas);
   overflow-y: auto;
+  overflow-x: hidden;
+  min-width: 0;
   padding: var(--spacing-xl);
 }
 
 .tab-pane {
   display: none;
+  width: 100%;
 }
 
 .tab-pane.active {
   display: block;
+}
+
+.main-content > .tab-pane {
+  margin: 0;
+  padding: 0;
+}
+
+.main-content > .tab-pane > * {
+  width: 100%;
+  max-width: 100%;
+}
+
+main .card,
+main .kanban-wrapper,
+main .table-container,
+main #dashboard-container,
+main #settings-container {
+  width: 100%;
+  max-width: 100%;
 }
 
 /* Header inside Main Content */
@@ -162,6 +184,13 @@ a:hover {
   margin-bottom: var(--spacing-xl);
   padding-bottom: var(--spacing-md);
   border-bottom: 1px solid var(--hairline);
+  width: 100%;
+}
+
+.top-bar h2,
+.tab-pane h3,
+.tab-pane h4 {
+  margin: 0;
 }
 
 /* Components */
