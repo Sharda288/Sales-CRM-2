@@ -55,14 +55,25 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  function hideSettingsTopBarControls() {
+    if (btnToggleLogs) btnToggleLogs.classList.add('hidden');
+    if (btnToggleSettings) btnToggleSettings.classList.add('hidden');
+  }
+
+  function isSettingsTabActive() {
+    return document.getElementById('tab-settings')?.classList.contains('active');
+  }
+
   // Toggle Views
   if (btnToggleSettings) {
     btnToggleSettings.addEventListener('click', () => {
+      if (!isSettingsTabActive()) return;
       updateSettingsView('settings');
     });
   }
   if (btnToggleLogs) {
     btnToggleLogs.addEventListener('click', () => {
+      if (!isSettingsTabActive()) return;
       updateSettingsView('logs');
     });
   }
@@ -102,6 +113,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (pageSubtitleEl) {
         pageSubtitleEl.textContent = '';
       }
+      hideSettingsTopBarControls();
 
       applyRoleRestrictions(user);
       renderDashboard();
@@ -119,18 +131,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function applyRoleRestrictions(user) {
     const settingsTabNav = document.querySelector('[data-tab="settings"]');
-    const btnToggleLogsEl = document.getElementById('settings-toggle-logs');
 
     if (settingsTabNav) settingsTabNav.classList.remove('hidden');
     if (auditLogsSection) auditLogsSection.classList.add('hidden');
-    if (btnToggleLogsEl) btnToggleLogsEl.classList.add('hidden');
+    hideSettingsTopBarControls();
 
     if (user.role === 'employee') {
       if (settingsTabNav) settingsTabNav.classList.add('hidden');
-    }
-
-    if (user.role === 'manager' || user.role === 'team_lead') {
-      if (btnToggleLogsEl) btnToggleLogsEl.classList.remove('hidden');
     }
   }
 
@@ -170,6 +177,9 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       if (pageSubtitleEl) {
         pageSubtitleEl.textContent = '';
+      }
+      if (tabName !== 'settings') {
+        hideSettingsTopBarControls();
       }
 
       if (tabName === 'dashboard' && window.dashboardManager) {
