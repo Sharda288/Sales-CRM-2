@@ -425,7 +425,7 @@ class LeadsManager {
   // ============================================================
   //  DRAWER
   // ============================================================
-  openDrawer(leadId) {
+  openDrawer(leadId, isEditMode = false) {
     const user = auth.getCurrentUser();
     if (!user) return;
     const leads = db.getRecords('leads', user);
@@ -458,7 +458,24 @@ class LeadsManager {
     `;
 
     // Action cards
-    let actionsHtml = `<div class="ldd-actions">
+    let actionsHtml = '';
+    if (isEditMode) {
+      actionsHtml = `<div class="ldd-actions" style="grid-template-columns: 1fr 1fr;">
+        <button class="ldd-action-card ldd-action-primary" id="ldd-btn-save" style="justify-content: center;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+          <span>Save Changes</span>
+        </button>
+        <button class="ldd-action-card" id="ldd-btn-cancel" style="justify-content: center;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          <span>Cancel</span>
+        </button>
+      </div>`;
+    } else {
+      actionsHtml = `<div class="ldd-actions">
+      <button class="ldd-action-card" data-action="toggle-edit" data-lead-id="${this.escapeHTML(lead.id)}">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+        <span>Edit Lead</span>
+      </button>
       <button class="ldd-action-card ldd-action-primary" data-action="to-req" data-lead-id="${this.escapeHTML(lead.id)}">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
         <span>Convert to Requirement</span>
@@ -484,6 +501,7 @@ class LeadsManager {
         <span>Mark Lost</span>
       </button>
     </div>`;
+    }
 
     // Summary cards
     const summaryHtml = `<div class="ldd-summary-row">
@@ -493,68 +511,94 @@ class LeadsManager {
     </div>`;
 
     // Sections
+    const statusOpts = ['New', 'Contacted', 'Qualified', 'Proposal Sent', 'Negotiation', 'Won', 'Lost', 'Dormant'];
+    const priorityOpts = ['High', 'Medium', 'Low'];
+    const typeOpts = ['Call', 'Email', 'Meeting', 'Follow-up'];
+
     const profileHtml = this.renderDrawerSection('Lead Profile', [
-      ['Lead ID', lead.id], ['Owner', lead.owner_id], ['Client', lead.contact_person],
-      ['Designation', lead.designation], ['Email', lead.email, 'email'], ['Phone', lead.phone, 'phone'],
-      ['LinkedIn', lead.linkedin, 'link'], ['Website', lead.website, 'link']
-    ]);
+      ['Lead ID', lead.id, 'text', null],
+      ['Owner', lead.owner_id, 'text', 'owner_id'],
+      ['Client', lead.contact_person, 'text', 'contact_person'],
+      ['Designation', lead.designation, 'text', 'designation'],
+      ['Email', lead.email, 'email', 'email'],
+      ['Phone', lead.phone, 'phone', 'phone'],
+      ['LinkedIn', lead.linkedin, 'link', 'linkedin'],
+      ['Website', lead.website, 'link', 'website']
+    ], isEditMode);
 
     const companyHtml = this.renderDrawerSection('Company Details', [
-      ['Industry', lead.industry], ['Company Size', lead.company_size],
-      ['Headquarters', lead.city], ['Locations', lead.country],
-      ['Service Interest', lead.service_interest], ['Source', lead.source]
-    ]);
+      ['Company', lead.company_name, 'text', 'company_name'],
+      ['Industry', lead.industry, 'text', 'industry'],
+      ['Company Size', lead.company_size, 'text', 'company_size'],
+      ['Headquarters', lead.city, 'text', 'city'],
+      ['Locations', lead.country, 'text', 'country'],
+      ['Service Interest', lead.service_interest, 'text', 'service_interest'],
+      ['Source', lead.source, 'text', 'source']
+    ], isEditMode);
 
     const salesHtml = this.renderDrawerSection('Sales Tracking', [
-      ['Status', lead.status], ['Priority', lead.priority],
-      ['First Call', lead.first_call_date || lead.last_contact_date, 'date'],
-      ['First Call Status', lead.first_call_status],
-      ['Second Call', lead.second_call_date, 'date'],
-      ['Second Call Status', lead.second_call_status],
-      ['Follow-up Status / Type', lead.follow_up_type],
-      ['Comments / Remarks', lead.remarks || lead.last_discussion]
-    ]);
+      ['Status', lead.status, 'select', 'status', statusOpts],
+      ['Priority', lead.priority, 'select', 'priority', priorityOpts],
+      ['First Call', lead.first_call_date || lead.last_contact_date, 'date', 'first_call_date'],
+      ['First Call Status', lead.first_call_status, 'text', 'first_call_status'],
+      ['Second Call', lead.second_call_date, 'date', 'second_call_date'],
+      ['Second Call Status', lead.second_call_status, 'text', 'second_call_status'],
+      ['Follow-up Status / Type', lead.follow_up_type, 'select', 'follow_up_type', typeOpts],
+      ['Comments / Remarks', lead.remarks || lead.last_discussion, 'text', 'remarks']
+    ], isEditMode);
 
     // Activity timeline
-    const activities = db.getRecords('activities', user).filter(a => a.related_entity === 'leads' && a.related_id === leadId);
-    activities.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-    let timelineHtml = '<div class="ldd-section"><h4 class="ldd-section-title">Activity Timeline</h4>';
-    if (activities.length === 0) {
-      timelineHtml += '<p class="ldd-empty">No activities recorded yet.</p>';
-    } else {
-      timelineHtml += '<div class="ldd-timeline">';
-      activities.slice(0, 10).forEach(a => {
-        timelineHtml += `<div class="ldd-timeline-item">
-          <span class="ldd-tl-dot"></span>
-          <div class="ldd-tl-content">
-            <div class="ldd-tl-type">${this.escapeHTML(a.type)}</div>
-            <div class="ldd-tl-desc">${this.escapeHTML(a.description)}</div>
-            <div class="ldd-tl-meta">by ${this.escapeHTML(a.created_by)}</div>
-          </div>
-          <span class="ldd-tl-time">${this.formatDate(a.created_at)}</span>
-        </div>`;
-      });
+    let timelineHtml = '';
+    if (!isEditMode) {
+      const activities = db.getRecords('activities', user).filter(a => a.related_entity === 'leads' && a.related_id === leadId);
+      activities.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+      timelineHtml = '<div class="ldd-section"><h4 class="ldd-section-title">Activity Timeline</h4>';
+      if (activities.length === 0) {
+        timelineHtml += '<p class="ldd-empty">No activities recorded yet.</p>';
+      } else {
+        timelineHtml += '<div class="ldd-timeline">';
+        activities.slice(0, 10).forEach(a => {
+          timelineHtml += `<div class="ldd-timeline-item">
+            <span class="ldd-tl-dot"></span>
+            <div class="ldd-tl-content">
+              <div class="ldd-tl-type">${this.escapeHTML(a.type)}</div>
+              <div class="ldd-tl-desc">${this.escapeHTML(a.description)}</div>
+              <div class="ldd-tl-meta">by ${this.escapeHTML(a.created_by)}</div>
+            </div>
+            <span class="ldd-tl-time">${this.formatDate(a.created_at)}</span>
+          </div>`;
+        });
+        timelineHtml += '</div>';
+      }
       timelineHtml += '</div>';
     }
-    timelineHtml += '</div>';
 
     // Attachments
-    const attachments = [
-      ['Visiting Card', lead.visiting_card_ref],
-      ['Requirement Note', lead.requirement_note_ref],
-      ['Email Screenshot', lead.email_screenshot_ref],
-      ['Reference Document', lead.reference_document_ref]
-    ].filter(a => a[1]);
     let attachHtml = '';
-    if (attachments.length > 0) {
-      attachHtml = '<div class="ldd-section"><h4 class="ldd-section-title">Attachments</h4><div class="ldd-attach-list">';
-      attachments.forEach(([label, val]) => {
-        attachHtml += `<div class="ldd-attach-item"><span class="ldd-attach-label">${this.escapeHTML(label)}</span><span class="ldd-attach-val">${this.escapeHTML(val)}</span></div>`;
-      });
-      attachHtml += '</div></div>';
+    if (isEditMode) {
+      attachHtml = this.renderDrawerSection('Attachments', [
+        ['Visiting Card URL', lead.visiting_card_ref, 'text', 'visiting_card_ref'],
+        ['Requirement Note URL', lead.requirement_note_ref, 'text', 'requirement_note_ref'],
+        ['Email Screenshot URL', lead.email_screenshot_ref, 'text', 'email_screenshot_ref'],
+        ['Reference Document URL', lead.reference_document_ref, 'text', 'reference_document_ref']
+      ], isEditMode);
+    } else {
+      const attachments = [
+        ['Visiting Card', lead.visiting_card_ref],
+        ['Requirement Note', lead.requirement_note_ref],
+        ['Email Screenshot', lead.email_screenshot_ref],
+        ['Reference Document', lead.reference_document_ref]
+      ].filter(a => a[1]);
+      if (attachments.length > 0) {
+        attachHtml = '<div class="ldd-section"><h4 class="ldd-section-title">Attachments</h4><div class="ldd-attach-list">';
+        attachments.forEach(([label, val]) => {
+          attachHtml += `<div class="ldd-attach-item"><span class="ldd-attach-label">${this.escapeHTML(label)}</span><span class="ldd-attach-val">${this.escapeHTML(val)}</span></div>`;
+        });
+        attachHtml += '</div></div>';
+      }
     }
 
-    body.innerHTML = actionsHtml + summaryHtml + profileHtml + companyHtml + salesHtml + timelineHtml + attachHtml;
+    body.innerHTML = actionsHtml + summaryHtml + profileHtml + companyHtml + salesHtml + attachHtml + timelineHtml;
 
     // Show drawer
     document.getElementById('ld-drawer').classList.remove('hidden');
@@ -564,33 +608,77 @@ class LeadsManager {
     const closeBtn = document.getElementById('ldd-close-btn');
     if (closeBtn) closeBtn.addEventListener('click', () => this.closeDrawer());
 
-    // Drawer action cards
-    body.querySelectorAll('.ldd-action-card').forEach(card => {
-      card.addEventListener('click', (e) => {
-        const action = card.getAttribute('data-action');
-        const id = card.getAttribute('data-lead-id');
-        this.handleAction(action, id);
+    if (isEditMode) {
+      const saveBtn = document.getElementById('ldd-btn-save');
+      const cancelBtn = document.getElementById('ldd-btn-cancel');
+      if (saveBtn) saveBtn.addEventListener('click', () => this.saveDrawerEdit(leadId));
+      if (cancelBtn) cancelBtn.addEventListener('click', () => this.openDrawer(leadId, false));
+    } else {
+      body.querySelectorAll('.ldd-action-card').forEach(card => {
+        card.addEventListener('click', (e) => {
+          const action = card.getAttribute('data-action');
+          if (action === 'toggle-edit') {
+            this.openDrawer(leadId, true);
+          } else {
+            const id = card.getAttribute('data-lead-id');
+            this.handleAction(action, id);
+          }
+        });
       });
-    });
+    }
 
     // Highlight selected row
     this.render();
   }
 
-  renderDrawerSection(title, fields) {
+  saveDrawerEdit(leadId) {
+    const keys = [
+      'owner_id', 'contact_person', 'designation', 'email', 'phone', 'linkedin', 'website',
+      'industry', 'company_size', 'city', 'country', 'service_interest', 'source',
+      'status', 'priority', 'first_call_date', 'first_call_status', 'second_call_date', 'second_call_status',
+      'follow_up_type', 'remarks', 'visiting_card_ref', 'requirement_note_ref', 'email_screenshot_ref', 'reference_document_ref',
+      'company_name'
+    ];
+    let updates = {};
+    keys.forEach(k => {
+      const el = document.getElementById(`ldd-edit-${k}`);
+      if (el) updates[k] = el.value;
+    });
+
+    const user = auth.getCurrentUser();
+    db.updateRecord('leads', leadId, updates, user);
+    this.render();
+    this.openDrawer(leadId, false);
+  }
+
+  renderDrawerSection(title, fields, isEditMode = false) {
     let html = `<div class="ldd-section"><h4 class="ldd-section-title">${this.escapeHTML(title)}</h4><div class="ldd-fields">`;
-    fields.forEach(([label, value, type]) => {
-      let valHtml = this.escapeHTML(value);
-      if (type === 'email' && value && value !== '-') {
-        valHtml = `<a href="mailto:${this.escapeHTML(value)}" class="ld-link">${this.escapeHTML(value)}</a>`;
-      } else if (type === 'phone' && value && value !== '-') {
-        valHtml = `<a href="tel:${this.escapeHTML(value)}" class="ld-link">${this.escapeHTML(value)}</a>`;
-      } else if (type === 'link' && value && value !== '-') {
-        valHtml = `<a href="${this.escapeHTML(value)}" target="_blank" rel="noopener noreferrer" class="ld-link">${this.escapeHTML(value)}</a>`;
-      } else if (type === 'date' && value) {
-        valHtml = this.formatDate(value);
+    fields.forEach(([label, value, type, key, options]) => {
+      if (isEditMode && key) {
+        let inputHtml = '';
+        if (type === 'select') {
+           inputHtml = `<select class="ld-filter-select" style="width:100%; border: 1px solid var(--hairline);" id="ldd-edit-${key}">
+              ${options.map(opt => `<option value="${this.escapeHTML(opt)}" ${opt === value ? 'selected' : ''}>${this.escapeHTML(opt)}</option>`).join('')}
+           </select>`;
+        } else if (type === 'date') {
+           inputHtml = `<input type="date" class="ld-filter-input" style="width:100%; border: 1px solid var(--hairline);" id="ldd-edit-${key}" value="${this.escapeHTML(value || '')}">`;
+        } else {
+           inputHtml = `<input type="text" class="ld-filter-input" style="width:100%; border: 1px solid var(--hairline);" id="ldd-edit-${key}" value="${this.escapeHTML(value || '')}">`;
+        }
+        html += `<div class="ldd-field"><span class="ldd-field-label">${this.escapeHTML(label)}</span><span class="ldd-field-value" style="margin-top:6px;">${inputHtml}</span></div>`;
+      } else {
+        let valHtml = this.escapeHTML(value);
+        if (type === 'email' && value && value !== '-') {
+          valHtml = `<a href="mailto:${this.escapeHTML(value)}" class="ld-link">${this.escapeHTML(value)}</a>`;
+        } else if (type === 'phone' && value && value !== '-') {
+          valHtml = `<a href="tel:${this.escapeHTML(value)}" class="ld-link">${this.escapeHTML(value)}</a>`;
+        } else if (type === 'link' && value && value !== '-') {
+          valHtml = `<a href="${this.escapeHTML(value)}" target="_blank" rel="noopener noreferrer" class="ld-link">${this.escapeHTML(value)}</a>`;
+        } else if (type === 'date' && value) {
+          valHtml = this.formatDate(value);
+        }
+        html += `<div class="ldd-field"><span class="ldd-field-label">${this.escapeHTML(label)}</span><span class="ldd-field-value">${valHtml}</span></div>`;
       }
-      html += `<div class="ldd-field"><span class="ldd-field-label">${this.escapeHTML(label)}</span><span class="ldd-field-value">${valHtml}</span></div>`;
     });
     html += '</div></div>';
     return html;
@@ -796,6 +884,7 @@ class LeadsManager {
 
     document.getElementById('modal-lead').classList.add('hidden');
     this.render();
+    if (this.selectedLeadId === finalLeadId) this.openDrawer(finalLeadId, false);
     if (window.renderDashboard) window.renderDashboard();
   }
 
