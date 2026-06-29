@@ -1,4 +1,5 @@
-﻿import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import Card from '../components/UI/Card.jsx';
 import Button from '../components/UI/Button.jsx';
 import DataTable from '../components/UI/DataTable.jsx';
@@ -14,6 +15,19 @@ export default function Leads() {
   const [status, setStatus] = useState('');
   const [drawer, setDrawer] = useState(null);
   const [editing, setEditing] = useState(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const didOpenFromQuery = useRef(false);
+
+  useEffect(() => {
+    if (didOpenFromQuery.current) return;
+    if (searchParams.get('action') === 'add') {
+      didOpenFromQuery.current = true;
+      setEditing(emptyLead);
+      searchParams.delete('action');
+      setSearchParams(searchParams, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
+
   const leads = records('leads');
   const visible = useMemo(() => leads.filter((lead) => {
     const text = `${lead.id} ${lead.company_name} ${lead.contact_person} ${lead.email} ${lead.phone} ${lead.owner_id}`.toLowerCase();
